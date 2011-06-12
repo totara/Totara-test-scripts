@@ -1,0 +1,21 @@
+Totara test scripts
+===================
+
+Before every Totara release we run the site through a number of automated tests
+in order to check for common bugs and errors.
+
+Typically these tests will work in for any Moodle 1.9 site and should also be
+suitable for Moodle 2.0 installations too.
+
+PLEASE ONLY RUN THESE TESTS IN A DEVELOPMENT ENVIRONMENT!! They are not designed
+To be run on a live site.
+
+link_checker.php
+----------------
+
+Spiders a site, following any internal links it finds, and records any errors it
+comes across. Can be run as many different users. Call from the command line:
+
+php link_checker.php [sitename] [username] [user password]
+
+
