@@ -264,9 +264,9 @@ class link_checker {
         // this only works if debugging is set high and errors output to page
         // alternatively, just save errors directly to the server logs
         if (!$this->is_in_whitelist($page_to_check->actual_url, 'sql')) {
-            foreach ($parsed_page->find('div.notifytiny') as $el) {
-                if (preg_match('/call to debugging\(\)/', $el->plaintext)) {
-                    $error = new lc_page_error('SQL Error: "' . $el->plaintext . '"',
+            foreach ($xpath->query('//div[@class=\'notifytiny\']') as $el) {
+                if (preg_match('/call to debugging\(\)/', $el->nodeValue)) {
+                    $error = new lc_page_error('SQL Error: "' . $el->nodeValue. '"',
                         $page_to_check);
                     array_push($this->errors, $error);
                 }
@@ -274,22 +274,19 @@ class link_checker {
             }
         }
 
-        /*
         // look for PHP errors
         // this only works if you have debugging set high, errors output to page
         // and Xdebug with pretty error messages installed
         // alternatively, just save errors directly to the server logs
         if (!$this->is_in_whitelist($page_to_check->actual_url, 'php')) {
-            foreach ($parsed_page->find('table.xdebug-error') as $err) {
-                // find first <th> tag
-                $el = $err->find('th', 0);
-
-                $error = new lc_page_error('PHP Error: "' . $el->plaintext . '"',
+            // find first <th> tag in the first <tr> tag in every
+            // table.xdebug-error table
+            foreach ($xpath->query('//table[@class=\'xdebug-error\']/tr[1]/th[1]') as $el) {
+                $error = new lc_page_error('PHP Error: "' . $el->nodeValue . '"',
                     $page_to_check);
                 array_push($this->errors, $error);
             }
         }
-         */
 
         // get the whole page (unparsed)
         $rawhtml = $parsed_page['raw'];
