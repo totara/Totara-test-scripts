@@ -85,14 +85,15 @@ $lc = new link_checker($site_url, $start_page);
 $lc->add_to_whitelist('login/logout.php');
 // contains an example URL fragment: 'http://'
 $lc->add_to_whitelist('help.php?module=wiki&file=howtowiki.html');
-// contains a string that looks like a bad lang string [[fieldname]]
-$lc->add_to_whitelist('help.php?module=data&file=tags.html', 'lang');
 // exports in ical format, which breaks urls in the middle
 $lc->add_to_whitelist('calendar/export_execute.php');
 // fails on local IP lookup
 $lc->add_to_whitelist('iplookup/index.php?ip=192.168.', 'errorbox');
+$lc->add_to_whitelist('iplookup/index.php?ip=172.', 'errorbox');
+$lc->add_to_whitelist('iplookup/index.php?ip=127.', 'errorbox');
+$lc->add_to_whitelist('iplookup/index.php?ip=10.', 'errorbox');
 // not useful to test
-$lc->add_to_whitelist('admin/xmldb/');
+$lc->add_to_whitelist('admin/tool/xmldb/');
 
 // start spidering site
 $lc->go();
