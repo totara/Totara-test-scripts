@@ -244,7 +244,11 @@ class link_checker {
         foreach ($xpath->query('//*[contains(@class, \'errorbox\')]') as $message) {
             $errorbox = true;
             if (!$this->is_in_whitelist($page_to_check->actual_url, 'errorbox')) {
-                $error = new lc_page_error('Error message "' . $message->nodeValue . '"',
+                // in Moodle, error details are stored in divs that sit outside of
+                // the error box - need to traverse DOM and parse to get actual errors
+                $msgdetails = strip_tags(str_replace(array('<br>', '<br />'), array("\n", "\n"), $parsed_page['dom']->saveXML($message->nextSibling))) . "\n";
+                $msgdetails .= $message->nextSibling->nextSibling->nodeValue;
+                $error = new lc_page_error('Error message "' . $message->firstChild->nodeValue . "\nDetails:     " . $msgdetails,
                     $page_to_check);
                 array_push($this->errors, $error);
             }
@@ -270,7 +274,6 @@ class link_checker {
                         $page_to_check);
                     array_push($this->errors, $error);
                 }
-
             }
         }
 
@@ -293,10 +296,12 @@ class link_checker {
 
         // @todo only list each lang string once
         if (!$this->is_in_whitelist($page_to_check->actual_url, 'lang')) {
-            if (preg_match_all('/\[\[([^\]]+)\]\]/i', $rawhtml , $matches, PREG_PATTERN_ORDER)) {
+            $regexp = "/Invalid get_string\(\) identifier: \'(.*)\' or component \'(.*)\'\./i";
+            if (preg_match_all($regexp, $rawhtml , $matches)) {
                 $badstrings = $matches[1];
-                foreach ($badstrings as $badstring) {
-                    $error = new lc_page_error('Bad language string "' . $badstring . '"',
+                $badcomponents = $matches[2];
+                foreach ($badstrings as $key => $badstring) {
+                    $error = new lc_page_error('Bad language string "' . $badstring . '" in component "' . $badcomponents[$key] . '"',
                         $page_to_check);
                     array_push($this->errors, $error);
                 }
