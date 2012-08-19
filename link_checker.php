@@ -24,8 +24,7 @@
  * @todo:
  * - Allow generalise to visit each type of link N times
  * - Option to display errors as they happen
- * - Fix spurious errors caused by queueing of links, where a preceeding
- *   link modifies the state
+ * - improve method of obtaining sesskey if possible
  *
  */
 
@@ -58,6 +57,15 @@ $start_page = isset($_SERVER['argv'][4]) ? $_SERVER['argv'][4] : 'index.php';
 // 4 = as above, plus additional progress information
 // 5 = full debug messages
 $DEBUG_LEVEL = 4;
+
+// if set to true, will visit URLs that contain the user's session key
+// enabling this option will likely result in permanent changes to your site,
+// and will take longer, but will be a more thorough so may catch more issues
+//
+// Note: Enabling this option can sometime give false positives, since links
+// can be saved to locations that are subsequently deleted by following another
+// link before they get visited
+$INCLUDE_SESSKEY_URLS = false;
 
 // create a new link checker
 $lc = new link_checker($site_url, $start_page);
@@ -314,6 +322,7 @@ class link_checker {
      * Process a parsed HTML page, saving any links to visit
      */
     private function process_links($parsed_page, $page_to_check) {
+        global $INCLUDE_SESSKEY_URLS, $USER_SESSKEY;
         $url_to_process = $page_to_check->actual_url;
 
         // loop through every link in the page
@@ -338,6 +347,20 @@ class link_checker {
             if (preg_match('/^#/', $url)) {
                 $this->debug('Skipping anchor link: ' . $url, 5);
                 continue;
+            }
+
+            // if not yet set, see if this url contains the users
+            // sesskey, and if so save it
+            if (!isset($USER_SESSKEY)) {
+                find_user_sesskey($url);
+            }
+
+            // unless we want to include them, skip any link which includes the sesskey
+            if (!$INCLUDE_SESSKEY_URLS) {
+                if (url_includes_sesskey($url)) {
+                    $this->debug('Skipping link that uses the sesskey: ' . $url, 5);
+                    continue;
+                }
             }
 
             // add root to relative paths
@@ -638,11 +661,11 @@ function generalise($url) {
 
     // params to always generalise (even when value is a string)
     $always_generalise = array(
-        /**
-         * Some reports have a alphabet bar for filtering usernames, can get into massive loops
-         */
+        // Some reports have a alphabet bar for filtering usernames, can get into massive loops
         'silast',
-        'sifirst'
+        'sifirst',
+        // too many pages to check here
+        'capability'
     );
 
     // split query params into an array
@@ -673,6 +696,54 @@ function generalise($url) {
     return substr($url, 0, $pos + 1) . implode('&', $new_query_parts);
 }
 
+/**
+ * Does a specific url contain the logged in user's sesskey as a parameter?
+ *
+ * @param string $url URL to check for sesskey
+ * @return boolean True if the sesskey is a value in the url, false otherwise
+ */
+function url_includes_sesskey($url) {
+    global $USER_SESSKEY;
 
+    // no way to check if not defined
+    if (!isset($USER_SESSKEY)) {
+        return false;
+    }
+
+    // split query params into an array
+    $query = parse_url($url, PHP_URL_QUERY);
+    $query_parts = array();
+    parse_str($query, $query_parts);
+
+    foreach ($query_parts as $key => $value) {
+        if ($value == $USER_SESSKEY) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Find and save the user's sesskey from this url
+ *
+ * @todo Find a better way to get the user's sesskey than this!
+ *
+ * @param string $url The url to check
+ */
+function find_user_sesskey($url) {
+    global $USER_SESSKEY;
+
+    // split query params into an array
+    $query = parse_url($url, PHP_URL_QUERY);
+    $query_parts = array();
+    parse_str($query, $query_parts);
+
+    foreach ($query_parts as $key => $value) {
+        if ($key == 'sesskey') {
+            $USER_SESSKEY = $value;
+            break;
+        }
+    }
+}
 ?>
 
