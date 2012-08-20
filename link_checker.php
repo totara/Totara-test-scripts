@@ -254,9 +254,23 @@ class link_checker {
             if (!$this->is_in_whitelist($page_to_check->actual_url, 'errorbox')) {
                 // in Moodle, error details are stored in divs that sit outside of
                 // the error box - need to traverse DOM and parse to get actual errors
-                $msgdetails = strip_tags(str_replace(array('<br>', '<br />'), array("\n", "\n"), $parsed_page['dom']->saveXML($message->nextSibling))) . "\n";
-                $msgdetails .= $message->nextSibling->nextSibling->nodeValue;
-                $error = new lc_page_error('Error message "' . $message->firstChild->nodeValue . "\nDetails:     " . $msgdetails,
+                $msgdetails = '';
+                $first_sibling = $parsed_page['dom']->saveXML($message->nextSibling);
+                $second_sibling = $message->nextSibling->nextSibling->nodeValue;
+
+                // make sure the first sibling does contain an error
+                if (strstr($first_sibling, 'notifytiny') !== false &&
+                    strstr($first_sibling, 'Debug info') !== false) {
+                    $msgdetails .= strip_tags(str_replace(array('<br>', '<br />'), array("\n", "\n"), $first_sibling)) . "\n";
+                }
+                // make sure the second sibling does contain an error
+                if (strstr($second_sibling, 'Stack trace') !== false) {
+                    $msgdetails .= "             " . $message->nextSibling->nextSibling->nodeValue;
+                }
+                if (strlen($msgdetails) > 0) {
+                    $msgdetails = "\nDetails:     {$msgdetails}";
+                }
+                $error = new lc_page_error('Error message "' . $message->firstChild->nodeValue . $msgdetails,
                     $page_to_check);
                 array_push($this->errors, $error);
             }
@@ -278,9 +292,12 @@ class link_checker {
         if (!$this->is_in_whitelist($page_to_check->actual_url, 'sql')) {
             foreach ($xpath->query('//div[@class=\'notifytiny\']') as $el) {
                 if (preg_match('/call to debugging\(\)/', $el->nodeValue)) {
-                    $error = new lc_page_error('SQL Error: "' . $el->nodeValue. '"',
-                        $page_to_check);
-                    array_push($this->errors, $error);
+                    // don't match bad strings, handled later
+                    if (!preg_match('/Invalid get_string\(\) identifier/', $el->nodeValue)) {
+                        $error = new lc_page_error('SQL Error: "' . $el->nodeValue. '"',
+                            $page_to_check);
+                        array_push($this->errors, $error);
+                    }
                 }
             }
         }
@@ -304,7 +321,7 @@ class link_checker {
 
         // @todo only list each lang string once
         if (!$this->is_in_whitelist($page_to_check->actual_url, 'lang')) {
-            $regexp = "/Invalid get_string\(\) identifier: \'(.*)\' or component \'(.*)\'\./i";
+            $regexp = "/Invalid get_string\(\) identifier: \'([^']*)\' or component \'([^']*)\'\./i";
             if (preg_match_all($regexp, $rawhtml , $matches)) {
                 $badstrings = $matches[1];
                 $badcomponents = $matches[2];
