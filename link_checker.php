@@ -79,6 +79,8 @@ $lc = new link_checker($site_url, $start_page);
 // 'sql': ignore moodle SQL error notifications
 // 'php': ignore PHP Xdebug warnings/errors/notices
 // 'status': ignore bad status codes like 404s
+// 'emptylink': ignore links with no content (e.g. <a href=""> )
+// 'localip': ignore links to local IP addresses (e.g. <a href="192.168.N.N/anything"> )
 // You can ignore multiple errors by providing a comma-separated list
 
 // avoid logging out
@@ -88,10 +90,7 @@ $lc->add_to_whitelist('help.php?module=wiki&file=howtowiki.html');
 // exports in ical format, which breaks urls in the middle
 $lc->add_to_whitelist('calendar/export_execute.php');
 // fails on local IP lookup
-$lc->add_to_whitelist('iplookup/index.php?ip=192.168.', 'errorbox');
-$lc->add_to_whitelist('iplookup/index.php?ip=172.', 'errorbox');
-$lc->add_to_whitelist('iplookup/index.php?ip=127.', 'errorbox');
-$lc->add_to_whitelist('iplookup/index.php?ip=10.', 'errorbox');
+$lc->add_to_whitelist('iplookup/index.php');
 // not useful to test
 $lc->add_to_whitelist('admin/tool/xmldb/');
 
@@ -332,14 +331,18 @@ class link_checker {
             $url = html_entity_decode(trim($link->getAttribute('href')));
 
             // log empty urls
-            if (strlen($url) == 0) {
+            if (strlen($url) == 0 && !$this->is_in_whitelist($page_to_check->actual_url, 'emptylink')) {
                 $error = new lc_page_error('Empty URL found in link named "'. $link->nodeValue . '"', $page_to_check);
                 array_push($this->errors, $error);
                 continue;
             }
 
             // log local IP addresses
-            if (preg_match('/[^=]192\.168\.[0-9]+\.[0-9]+/', $url)) {
+            if ((preg_match('/[^=]192\.168\.[0-9]+\.[0-9]+/', $url) ||
+                preg_match('/[^=]172\.[0-9]+\.[0-9]+\.[0-9]+/', $url) ||
+                preg_match('/[^=]127\.[0-9]+\.[0-9]+\.[0-9]+/', $url) ||
+                preg_match('/[^=]10\.[0-9]+\.[0-9]+\.[0-9]+/', $url))
+                && !$this->is_in_whitelist($page_to_check->actual_url, 'localip')) {
                 $error = new lc_page_error('Local IP address found in URL "' . $url . '"', $page_to_check);
                 array_push($this->errors, $error);
                 continue;
