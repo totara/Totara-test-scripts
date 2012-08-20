@@ -270,7 +270,7 @@ class link_checker {
                 if (strlen($msgdetails) > 0) {
                     $msgdetails = "\nDetails:     {$msgdetails}";
                 }
-                $error = new lc_page_error('Error message "' . $message->firstChild->nodeValue . $msgdetails,
+                $error = new lc_page_error('Error message "' . $message->firstChild->nodeValue . '"' . $msgdetails,
                     $page_to_check);
                 array_push($this->errors, $error);
             }
