@@ -1,0 +1,36 @@
+#!/usr/bin/php
+<?
+/**
+ * Return version information for the current moodle/totara site
+ * based on the current directory when this command is called (or
+ * a specified directory.
+ *
+ * USAGE:
+ *
+ * version
+ *
+ * => returns version info for site in current directory
+ *
+ * OR:
+ *
+ * version /home/simonc/code/totara
+ *
+ * => returns version info for site in /home/simonc/code/totara
+ */
+
+require_once(dirname(__DIR__).'/utils/utilslib.php');
+$dir = isset($argv[1]) ? $argv[1] : getcwd();
+
+try {
+    $versioninfo = get_site_version($dir);
+} catch (Exception $e) {
+    echo "No site found in '{$dir}'.\n";
+    exit;
+}
+
+if (empty($versioninfo)) {
+    echo "No version info returned\n";
+    exit;
+}
+
+echo print_r($versioninfo, true) . "\n";

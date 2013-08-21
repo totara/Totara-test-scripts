@@ -1,0 +1,35 @@
+#!/usr/bin/php
+<?
+/**
+ * Returns a directory path to the code wwwroot for the current
+ * working directory (or another path if specified)
+ *
+ * USAGE:
+ *
+ * cd ~/code/totara/theme/standardtotara
+ * wwwroot
+ *
+ * => Returns: /home/simonc/code/totara
+ *
+ * cd ~
+ * wwwroot ~/code/mdl22/lib/
+ *
+ * => Returns /home/simonc/code/mdl22
+ *
+ * cd ~
+ * wwwroot
+ *
+ * => Returns: No webroot found!
+ *
+ */
+require_once(dirname(__DIR__).'/utils/utilslib.php');
+
+$dir = isset($argv[1]) ? $argv[1] : getcwd();
+
+$root = get_web_root($dir);
+if ($root) {
+    echo "{$root}\n";
+} else {
+    echo "No webroot found!\n";
+}
+

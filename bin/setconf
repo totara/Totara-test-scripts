@@ -1,0 +1,110 @@
+#!/usr/bin/php
+<?
+/**
+ * Script to auto-generate moodle/totara config.php files
+ *
+ * Recognises current working directory and generates the appropriate file
+ * and saves to the right place.
+ *
+ * Optional flags can be used to set database type
+ */
+
+require_once(dirname(__DIR__).'/utils/utilslib.php');
+$scriptname = basename(__FILE__);
+
+// map fake db shortnames to real ones
+$aliases = array(
+    '1.1' => 't1-release-1.1',
+    '2.2' => 't2-release-2.2',
+    '2.4' => 't2-release-2.4',
+    'fresh' => 't2-fresh',
+);
+
+$helpmessage = <<<EOF
+NAME
+    $scriptname - set a totara config.php file
+
+SYNOPSIS
+    $scriptname [DBNAME]
+
+DESCRIPTION
+    Generates a config.php with some specific settings and writes to
+    to the current codebase's webroot
+
+    Optional arguments:
+
+    -d, --database
+        Type of database to use (postgres, mysql, mssql). Defaults to postgres
+        if not specified
+
+    -e, --echo
+        Echo the config.php contents instead of writing to a file
+
+    -h, --help
+        Displays this help and exit
+
+
+EOF;
+
+if (count($argv) == 1) {
+    echo $helpmessage;
+    exit;
+}
+
+// look for command line flags
+$opts = getopt('e::h::d::', array('database::', 'help::', 'echo::'));
+
+// display help only
+if (isset($opts['h']) || isset($opts['help'])) {
+    echo $helpmessage;
+    exit;
+}
+
+// figure out which database to use
+if (isset($opts['database'])) {
+    $dbtype = $opts['database'];
+} else if (isset($opts['d'])) {
+    $dbtype = $opts['d'];
+} else {
+    // default to postgres
+    $dbtype = 'pgsql';
+}
+
+// last argument is the database name
+$dbname = end($argv);
+
+// allow shortnames for common databases
+if (array_key_exists($dbname, $aliases)) {
+    $dbname = $aliases[$dbname];
+}
+
+$cwd = getcwd();
+try {
+    $dirroot = get_web_root($cwd);
+} catch (Exception $e) {
+    echo "Unable to determine webroot for current location '{$cwd}'.\n";
+    exit;
+}
+
+$config = get_config_file($dirroot, $dbtype, $dbname);
+
+// echo or write to file
+if (isset($opts['e']) || isset($opts['echo'])) {
+    echo $config;
+} else {
+    $filename = $dirroot . '/config.php';
+
+    // check permissions for directory and file
+    if (!is_writable($dirroot)) {
+        echo "No permissions to write config to directory '$dirroot'\n";
+        exit;
+    }
+    if (file_exists($filename) && !is_writable($filename)) {
+        echo "No permissions to write to file '$filename'\n";
+        exit;
+    }
+
+    // write config file
+    file_put_contents($filename, $config);
+}
+

@@ -1,0 +1,24 @@
+php admin/cliupgrade.php \
+    --lang="en_utf8" \
+    --webaddr="%%wwwroot%%" \
+    --moodledir="%%dirroot%%" \
+    --datadir="%%dataroot%%" \
+    --dbtype="%%dbtype%%" \
+    --dbhost="%%dbhost%%" \
+    --dbname="%%dbname%%" \
+    --dbuser="%%dbuser%%" \
+    --dbpass="%%dbpass%%" \
+    --prefix="%%prefix%%" \
+    --agreelicense="yes" \
+    --confirmrelease="yes" \
+    --sitefullname="Totara" \
+    --siteshortname="Totara" \
+    --sitesummary="Site summary" \
+    --sitenewsitems="0" \
+    --adminfirstname="Admin" \
+    --adminlastname="User" \
+    --adminusername="%%adminuser%%" \
+    --adminpassword="%%adminpass%%" \
+    --verbose="1" \
+    --interactivelevel="0"
+

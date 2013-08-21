@@ -1,0 +1,21 @@
+#!/usr/bin/php
+<?php
+/**
+ * Show the colors available for ColorCli
+ *
+ */
+require_once(dirname(__DIR__).'/codechecker/codecheckerlib.php');
+
+$str = "Test ";
+foreach (ColorCLI::$foregroundColors as $fg => $fgCode) {
+    echo ColorCLI::$fg($fg);
+}
+echo PHP_EOL;
+foreach (ColorCLI::$backgroundColors as $bg => $bgCode) {
+    foreach (ColorCLI::$foregroundColors as $fg => $fgCode) {
+        echo ColorCLI::$fg($fg, $bg);
+    }
+    echo $bg;
+    echo PHP_EOL;
+}
+?>

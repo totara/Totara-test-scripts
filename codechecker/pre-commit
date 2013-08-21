@@ -1,0 +1,7 @@
+#!/usr/bin/php
+<?php
+/**
+ * Left here to remind anyone using the old method
+ */
+echo "The pre-commit hook has been replaced with an alias - see internal-tools/codechecker/README.txt for details\n";
+

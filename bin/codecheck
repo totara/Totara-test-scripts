@@ -1,0 +1,17 @@
+#!/usr/bin/php
+<?php
+/**
+ * Runs the code checker on all staged changes to look for problems.
+ *
+ */
+require_once(dirname(__DIR__).'/codechecker/codechecker.php');
+
+$result = run_codechecker();
+
+if (!$result) {
+    // TODO Need to check if there are any unstage changes and show a warning with continue yes/no, then remove the advice below.
+    echo "Checking of staged changes was completed successfully. Don't forget to git add any changes you made!\n";
+}
+
+exit ($result);
+?>
