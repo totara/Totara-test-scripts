@@ -30,7 +30,7 @@ function run_codegrepper($file, $dirroot, $changedlinenumbers) {
         // this is probably bad, at least warn about it they can always commit anyway
         'PARAM_RAW' => '/PARAM_RAW/',
         // same here
-        'var_dump' => '/var_dump/',
+        'debug command' => '/\(var_dump\|debug_backtrace\)/',
     );
 
     // Loop through each regexp to check
