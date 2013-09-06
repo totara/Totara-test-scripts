@@ -1,0 +1,68 @@
+#!/usr/bin/php
+<?
+
+/**
+ * Script to list available stored databases that can be restored
+ *
+ * The databases that can be restored is determined based on values from the
+ * config.php file found using get_web_root()
+ */
+
+require_once(dirname(__DIR__).'/utils/utilslib.php');
+$scriptname = basename(__FILE__);
+$backupdir = get_backup_directory();
+$dbbackupdir = $backupdir . '/dbs';
+$databackupdir = $backupdir . '/data';
+
+$cwd = getcwd();
+try {
+    $dirroot = get_web_root($cwd);
+} catch (Exception $e) {
+    echo "Unable to determine webroot for current location '{$cwd}'. Exiting.\n";
+    exit;
+}
+
+$configfile = $dirroot . '/config.php';
+if (file_exists($configfile) && !is_readable($configfile)) {
+    echo "Config file '{$configfile}' is not readable. You may need to use setconf first. Exiting.\n";
+    exit;
+}
+
+$settings = get_settings_from_config($configfile);
+
+$dbtype = normalise_dbtype($settings->dbtype);
+$regexptype = preg_quote($dbtype);
+
+// Find DB backup files.
+$dbs = array();
+foreach (scandir($dbbackupdir) as $file) {
+    if (is_dir($file)) {
+        continue;
+    }
+    if (preg_match("/^(.*)\.{$regexptype}$/", $file, $matches)) {
+        $dbs[] = $matches[1];
+    }
+}
+// Find dataroot backup files.
+$zips = array();
+foreach (scandir($databackupdir) as $file) {
+    if (is_dir($file)) {
+        continue;
+    }
+    if (preg_match("/(.*)\.zip$/", $file, $matches)) {
+        $zips[] = $matches[1];
+    }
+}
+// We need both to be able to restore fully.
+$names = array_intersect($dbs, $zips);
+
+// Display the list.
+if (count($names)) {
+    echo "Backups for current database ({$dbtype}):\n";
+    echo '  ' . implode("\n  ", $names);
+    echo "\n";
+} else {
+    echo "No backups for current database ({$dbtype}).\n";
+    echo "Create using 'savedb' first.\n";
+}
+

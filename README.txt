@@ -20,6 +20,7 @@ linkchecker.php - Spiders a site, following internal links it finds and
 resetdb - do a fresh install based on the current code
 savedb  - backup the database and dataroot for the current site to a named backup
 loaddb  - restore the database and dataroot for the current site from a named backup
+listdb  - list all available backups for the current site's database type
 
 INSTALL
 =======
