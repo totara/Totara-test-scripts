@@ -9,7 +9,6 @@ EXISTING UTILITIES
 
 codecheck - command line version of moodle's code sniffer module with some
             totara additions
-resetdb - do a fresh install based on the current code
 wwwroot - looks up the directory tree to find a moodle/totara "code"
           folder, returning the path
 version - uses wwwroot to find the version.php file then parses out version
@@ -18,6 +17,9 @@ setconf - generates a new config.php file for the current code directory,
           based on version data and user input
 linkchecker.php - Spiders a site, following internal links it finds and
           records errors it comes across
+resetdb - do a fresh install based on the current code
+savedb  - backup the database and dataroot for the current site to a named backup
+loaddb  - restore the database and dataroot for the current site from a named backup
 
 INSTALL
 =======
@@ -41,7 +43,7 @@ source ~/.bashrc
 setconf --help
 
 
-To use resetdb you need to complete some additional steps:
+To use resetdb, savedb or loaddb you need to complete some additional steps:
 
 5. Copy utils/settings-dist.php to utils/settings.php and edit values for
    your system

@@ -10,6 +10,8 @@
 require_once(dirname(__DIR__).'/utils/utilslib.php');
 $scriptname = basename(__FILE__);
 $backupdir = '/tmp/backup';
+$dbbackupdir = $backupdir . '/dbs';
+$databackupdir = $backupdir . '/data';
 
 // Unique name for this backup.
 $name = isset($argv[1]) ? $argv[1] : 'default';
@@ -39,69 +41,50 @@ if (!is_readable($dataroot)) {
     exit;
 }
 
-if (!is_readable($backupdir) && !mkdir($backupdir, 0777, true)) {
-    echo "Could not create backup directory path '{$backupdir}'. Exiting.\n";
+if (!is_readable($dbbackupdir) && !mkdir($dbbackupdir, 0777, true)) {
+    echo "Could not create DB backup directory path '{$dbbackupdir}'. Exiting.\n";
     exit;
 }
 
-if (!is_writeable($backupdir)) {
-    echo "Backup directory path '{$backupdir}' is not writeable. Exiting.\n";
+if (!is_writeable($dbbackupdir)) {
+    echo "DB backup directory path '{$dbbackupdir}' is not writeable. Exiting.\n";
     exit;
 }
 
-$filename = $backupdir . '/' . $name . '.' . $dbtype;
+if (!is_readable($databackupdir) && !mkdir($databackupdir, 0777, true)) {
+    echo "Could not create data backup directory path '{$databackupdir}'. Exiting.\n";
+    exit;
+}
 
-echo "Backing up {$dbtype} database called '{$dbname}' to '{$filename}'.\n";
+if (!is_writeable($databackupdir)) {
+    echo "Data backup directory path '{$databackupdir}' is not writeable. Exiting.\n";
+    exit;
+}
+
+$dbfilename = $dbbackupdir . '/' . $name . '.' . $dbtype;
+
+echo "Backing up {$dbtype} database called '{$dbname}' to '{$dbfilename}'.\n";
 $db = mydb::connect($dbtype, $settings->dbhost, $settings->dbuser, $settings->dbpass);
 
-if (!$db->backupdb($dbname, $filename)) {
+if (!$db->backupdb($dbname, $dbfilename)) {
     echo "Error, {$dbtype} database called '{$dbname}' was not found. Exiting.\n";
     exit;
 }
 
-/*
+$datafilename = $databackupdir . '/' . $name . '.zip';
 
-// empty moodledata folder
-echo "Emptying dataroot '{$dataroot}'\n";
-delete_directory_contents($dataroot);
+echo "Backing up moodledata folder from '{$dataroot}' to '{$datafilename}'.\n";
 
-// run CLI install
-// todo figure out warnings on 1.1
-echo "Starting CLI install in '{$dirroot}'\n";
-cli_install($dbtype, $dbname, $dirroot);
+// Exclude files in temp/typo3temp as they are created without read permissions for most users
+// which causes the zip to fail.
+$command = "cd {$dataroot} && zip -r -xtemp/typo3temp/\\* {$datafilename} * && cd -";
+exec($command, $output, $returncode);
 
-// Remove config again and recreate with all settings
-// this also fixes the permissions so it's readable by the web server
-if (file_exists($configfile)) {
-    echo "Removing config.php created during install\n";
-    unlink($configfile);
+// 0 means success.
+if ($returncode !== 0) {
+    echo "Error, zipping contents of '{$dataroot}' to '{$datafilename}'\n. Exiting.\n";
+    exit;
 }
-// recreate config.php
-echo "Recreating config.php with sensible default settings\n";
-$versioninfo = get_site_version();
-$version = isset($versioninfo->totara->version) ?
-    $versioninfo->totara->version : $versioninfo->moodle->version;
-$configtemplate = get_best_config($version);
-$dbsettings = get_database_settings($dbtype, $dbname, $version);
-$settings = merge_objects($settings, $dbsettings);
-$settings->dirroot = $dirroot;
-$config = substitute_template_config($configtemplate, $settings);
-file_put_contents($configfile, $config);
 
-// Update password hashes
-// We need this because the CLI install may have created them with a salt
-echo "Update password hashes to remove any salt\n";
-$db = mydb::connect($dbtype, $settings->dbhost, $settings->dbuser, $settings->dbpass, $dbname);
-$db->query("UPDATE {$settings->prefix}user SET password=md5('{$settings->adminpass}') WHERE username='admin'");
-$db->query("UPDATE {$settings->prefix}user SET password=md5('guest') WHERE username='guest'");
+echo "Done\n";
 
-// Set admin email/city/country
-echo "Set required profile fields for admin user\n";
-$db->query("
-    UPDATE {$settings->prefix}user
-    SET city='{$settings->defaultcity}',
-    country='{$settings->defaultcountry}',
-    email='{$settings->adminemail}'
-    WHERE username='admin'");
-
- */

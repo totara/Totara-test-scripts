@@ -132,6 +132,7 @@ class mydb_pgsql extends mydb {
         } else {
             $dbpasscmd = '-W ' . escapeshellarg($this->_dbpass);
         }
+        $filename = escapeshellarg($filename);
 
         // Backup to $filename
         $command = "pg_dump -h {$dbhost} -U {$dbuser} {$dbpasscmd} -O -Fc {$dbname} > {$filename}";
@@ -171,6 +172,7 @@ class mydb_pgsql extends mydb {
         } else {
             $dbpasscmd = '-W ' . escapeshellarg($this->_dbpass);
         }
+        $filename = escapeshellarg($filename);
 
         $command = "pg_restore -O -Fc -h {$dbhost} -U {$dbuser} {$dbpasscmd} -d {$dbname} $filename";
         exec($command, $output, $returncode);
@@ -293,6 +295,7 @@ class mydb_mysql extends mydb {
         } else {
             $dbpasscmd = '-p ' . escapeshellarg($this->_dbpass);
         }
+        $filename = escapeshellarg($filename);
 
         // Backup to $filename
         $command = "mysqldump -h {$dbhost} -u {$dbuser} {$dbpasscmd} {$dbname} > {$filename}";
@@ -331,6 +334,7 @@ class mydb_mysql extends mydb {
         } else {
             $dbpasscmd = '-p ' . escapeshellarg($this->_dbpass);
         }
+        $filename = escapeshellarg($filename);
 
         // Backup to $filename
         $command = "mysql -h {$dbhost} -u {$dbuser} {$dbpasscmd} {$dbname} < {$filename}";
