@@ -1,0 +1,108 @@
+#!/usr/bin/php
+<?
+
+/**
+ * Script to load the database/dataroot from a stored copy
+ * created using savedb.
+ * The database to restore to is determined based on values from the
+ * config.php file found using get_web_root()
+ */
+
+require_once(dirname(__DIR__).'/utils/utilslib.php');
+$scriptname = basename(__FILE__);
+$backupdir = '/tmp/backup';
+
+// Unique name of backup to restore.
+$name = isset($argv[1]) ? $argv[1] : 'default';
+
+$cwd = getcwd();
+try {
+    $dirroot = get_web_root($cwd);
+} catch (Exception $e) {
+    echo "Unable to determine webroot for current location '{$cwd}'. Exiting.\n";
+    exit;
+}
+
+$configfile = $dirroot . '/config.php';
+if (file_exists($configfile) && !is_readable($configfile)) {
+    echo "Config file '{$configfile}' is not readable. You may need to use setconf first. Exiting.\n";
+    exit;
+}
+
+$settings = get_settings_from_config($configfile);
+
+$dbname = $settings->dbname;
+$dbtype = normalise_dbtype($settings->dbtype);
+$dataroot = $settings->dataroot;
+
+if (!is_readable($dataroot)) {
+    echo "Site dataroot '{$dataroot}' is not readable. Exiting.\n";
+    exit;
+}
+
+if (!is_readable($backupdir)) {
+    echo "Could not access backup directory path '{$backupdir}'. Exiting.\n";
+    exit;
+}
+
+$filename = $backupdir . '/' . $name . '.' . $dbtype;
+
+if (!is_readable($filename)) {
+    echo "Could not access backup file '{$filename}'. Exiting.\n";
+    exit;
+}
+
+echo "Restoring backup for {$dbtype} database from '{$filename}' to '{$dbname}'.\n";
+$db = mydb::connect($dbtype, $settings->dbhost, $settings->dbuser, $settings->dbpass);
+
+if (!$db->restoredb($dbname, $filename)) {
+    echo "Error, file '{$filename}' could not be restored to {$dbtype} database called '{$dbname}'. Exiting.\n";
+    exit;
+}
+
+/*
+
+// empty moodledata folder
+echo "Emptying dataroot '{$dataroot}'\n";
+delete_directory_contents($dataroot);
+
+// run CLI install
+// todo figure out warnings on 1.1
+echo "Starting CLI install in '{$dirroot}'\n";
+cli_install($dbtype, $dbname, $dirroot);
+
+// Remove config again and recreate with all settings
+// this also fixes the permissions so it's readable by the web server
+if (file_exists($configfile)) {
+    echo "Removing config.php created during install\n";
+    unlink($configfile);
+}
+// recreate config.php
+echo "Recreating config.php with sensible default settings\n";
+$versioninfo = get_site_version();
+$version = isset($versioninfo->totara->version) ?
+    $versioninfo->totara->version : $versioninfo->moodle->version;
+$configtemplate = get_best_config($version);
+$dbsettings = get_database_settings($dbtype, $dbname, $version);
+$settings = merge_objects($settings, $dbsettings);
+$settings->dirroot = $dirroot;
+$config = substitute_template_config($configtemplate, $settings);
+file_put_contents($configfile, $config);
+
+// Update password hashes
+// We need this because the CLI install may have created them with a salt
+echo "Update password hashes to remove any salt\n";
+$db = mydb::connect($dbtype, $settings->dbhost, $settings->dbuser, $settings->dbpass, $dbname);
+$db->query("UPDATE {$settings->prefix}user SET password=md5('{$settings->adminpass}') WHERE username='admin'");
+$db->query("UPDATE {$settings->prefix}user SET password=md5('guest') WHERE username='guest'");
+
+// Set admin email/city/country
+echo "Set required profile fields for admin user\n";
+$db->query("
+    UPDATE {$settings->prefix}user
+    SET city='{$settings->defaultcity}',
+    country='{$settings->defaultcountry}',
+    email='{$settings->adminemail}'
+    WHERE username='admin'");
+
+ */
