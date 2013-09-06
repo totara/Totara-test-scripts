@@ -10,7 +10,7 @@
 
 require_once(dirname(__DIR__).'/utils/utilslib.php');
 $scriptname = basename(__FILE__);
-$backupdir = '/tmp/backup';
+$backupdir = get_backup_directory();
 $dbbackupdir = $backupdir . '/dbs';
 $databackupdir = $backupdir . '/data';
 

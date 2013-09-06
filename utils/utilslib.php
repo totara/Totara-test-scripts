@@ -238,6 +238,26 @@ function get_instance_settings($instance) {
 }
 
 /**
+ * Load the settings file, and extracts the backup directory
+ *
+ * @return string Path to backup directory
+ */
+function get_backup_directory() {
+    $settingspath = __DIR__.'/settings.php';
+    if (!is_readable($settingspath)) {
+        throw new Exception("Settings file '{$settingspath}' not found. You need to create this file by copying from settings-dist.php and updating for your system.");
+    }
+    require($settingspath);
+
+    if (!isset($backupdir)) {
+        // Default value.
+        $backupdir = '/tmp/backup';
+    }
+
+    return $backupdir;
+}
+
+/**
  * Given a database type, convert to the common type description
  * required by moodle, e.g. pgsql, mysql or mssql_n
  */
