@@ -96,3 +96,13 @@ $db->query("
     email='{$settings->adminemail}'
     WHERE username='admin'");
 
+// Init phpunit in the background
+echo "Starting phpunit init via background process\n";
+$descriptorspec = array(
+    array('pipe', 'r'),               // stdin
+    array('file', '/dev/null', 'a'), // stdout
+    array('pipe', 'w'),               // stderr
+);
+$proc = proc_open('php admin/tool/phpunit/cli/init.php &', $descriptorspec, $pipes);
+
+echo "Done\n";
