@@ -1,0 +1,45 @@
+#!/usr/bin/php
+<?php
+
+/**
+ * Quick script to receive an SQL query from standard input
+ * and convert moodle {tablenames} to use the prefix from
+ * the current site's $CFG->prefix setting.
+ *
+ * Example:
+ *
+ * echo "SELECT * FROM {user}" | fixquery
+ *
+ * with output:
+ *
+ * "SELECT * FROM mdl_user"
+ *
+ * if $CFG->prefix is 'mdl_'.
+ *
+ */
+
+require_once(dirname(__DIR__).'/utils/utilslib.php');
+$scriptname = basename(__FILE__);
+
+$cwd = getcwd();
+try {
+    $dirroot = get_web_root($cwd);
+} catch (Exception $e) {
+    echo "Unable to determine webroot for current location '{$cwd}'.\n";
+    exit;
+}
+
+$configfile = $dirroot . '/config.php';
+
+if (!is_readable($configfile)) {
+    echo "Config file '{$configfile}' is not present or not readable. Exiting\n";
+    exit;
+}
+
+$settings = get_settings_from_config($configfile);
+
+$prefix = $settings->prefix;
+
+while (FALSE !== ($line = fgets(STDIN))) {
+    echo preg_replace('/\{([a-z][a-z0-9_]*)\}/', $prefix.'$1', $line);
+}
