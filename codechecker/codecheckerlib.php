@@ -4,8 +4,13 @@
  * and open the template in the editor.
  */
 
-function get_changed_lines($file, $dirroot) {
-    exec("git diff --cached -U0 -- " . local_codechecker_clean_path($dirroot . '/' . $file), $diff);
+function get_changed_lines($file, $dirroot, $githash = null) {
+
+    if (isset($githash)) {
+        exec("git show $githash -U0 -- " . local_codechecker_clean_path($dirroot . '/' . $file), $diff);
+    } else {
+        exec("git diff --cached -U0 -- " . local_codechecker_clean_path($dirroot . '/' . $file), $diff);
+    }
 
     $changedlines = array();
     $chunklinesleft = 0;

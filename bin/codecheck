@@ -6,11 +6,21 @@
  */
 require_once(dirname(__DIR__).'/codechecker/codechecker.php');
 
-$result = run_codechecker();
+$githash = isset($argv[1]) ? $argv[1] : null;
 
-if (!$result) {
-    // TODO Need to check if there are any unstage changes and show a warning with continue yes/no, then remove the advice below.
-    echo "Checking of staged changes was completed successfully. Don't forget to git add any changes you made!\n";
+if (isset($githash)) {
+    $result = run_codechecker($githash);
+    if (!$result) {
+        echo "Checking of staged changes was completed successfully.\n";
+        exit (1); // Exit with a non zero result to stop commit when git alias is setup
+    }
+} else {
+    $result = run_codechecker();
+
+    if (!$result) {
+        // TODO Need to check if there are any unstage changes and show a warning with continue yes/no, then remove the advice below.
+        echo "Checking of staged changes was completed successfully. Don't forget to git add any changes you made!\n";
+    }
 }
 
 exit ($result);

@@ -1,6 +1,6 @@
 <?php
 /**
- * 
+ *
  */
 require_once(__DIR__ . '/codesniffer.php');
 require_once(__DIR__ . '/lintchecker.php');
@@ -23,18 +23,22 @@ function compare_result_by_line($a, $b) {
 }
 
 /**
- * Run all code checks. 
+ * Run all code checks.
  * @param type $dir
  * @return An error code - 0 to continue
  */
-function run_codechecker() {
+function run_codechecker($githash = null) {
     include('colors.php');
     $problems = 0;
-    
+
     $dirroot = get_web_root();
-    
+
     // Find the files that have been changed
-    exec('git diff --cached --name-status', $files);
+    if (isset($githash)) {
+        exec('git show --name-status ' . $githash, $files);
+    } else {
+        exec('git diff --cached --name-status', $files);
+    }
 
     // Run the code sniffer
     for ($i = 0; $i < sizeof($files); $i++) {
@@ -47,15 +51,15 @@ function run_codechecker() {
             continue;
         }
         $file = $matches[2];
-        
-        $changedlinenumbers = get_changed_lines($file, $dirroot);
-        
+
+        $changedlinenumbers = get_changed_lines($file, $dirroot, $githash);
+
         // Run each of the checks on the file and collect the results
         $results = array();
         $results = array_merge($results, run_codesniffer($file, $dirroot, $changedlinenumbers));
         $results = array_merge($results, run_lintchecker($file, $dirroot, $changedlinenumbers));
         $results = array_merge($results, run_codegrepper($file, $dirroot, $changedlinenumbers));
-        
+
         usort($results, "compare_result_by_line");
 
         // Print results
@@ -90,7 +94,7 @@ function run_codechecker() {
                 echo " " . $result->message . "\n";
             }
         }
-        
+
         $problems += sizeof($results);
     }
 
