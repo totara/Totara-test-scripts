@@ -33,6 +33,10 @@ function run_codegrepper($file, $dirroot, $changedlinenumbers) {
         'debug command' => '/(var_dump|debug_backtrace)/',
         // same here
         'superglobal' => '/\$_(POST|GET|REQUEST|SESSION|COOKIE|FILES)/',
+        // don't include end php tags to avoid trailing whitespace issues
+        // would be good to check for end-tag then whitespace then end of file but
+        // need multiline regexps.
+        'end php tag' => '/\?>/',
     );
 
     // Loop through each regexp to check
