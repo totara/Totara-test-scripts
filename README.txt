@@ -33,7 +33,7 @@ git clone git@github.com:totara/Totara-test-scripts.git
 2. Add bin directory to your PATH shell variable in ~/.bashrc, ~/.zshrc
    or similar:
 
-PATH=$PATH:path/to/repository/utils/bin
+PATH=$PATH:path/to/repository/bin
 
 3. Reload your shell config file, e.g.:
 
