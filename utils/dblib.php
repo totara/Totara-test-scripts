@@ -293,7 +293,7 @@ class mydb_mysql extends mydb {
         if (empty($this->_dbpass)) {
             $dbpasscmd = '';
         } else {
-            $dbpasscmd = '-p ' . escapeshellarg($this->_dbpass);
+            $dbpasscmd = '--password=' . escapeshellarg($this->_dbpass);
         }
         $filename = escapeshellarg($filename);
 
@@ -332,7 +332,7 @@ class mydb_mysql extends mydb {
         if (empty($this->_dbpass)) {
             $dbpasscmd = '';
         } else {
-            $dbpasscmd = '-p ' . escapeshellarg($this->_dbpass);
+            $dbpasscmd = '--password=' . escapeshellarg($this->_dbpass);
         }
         $filename = escapeshellarg($filename);
 
