@@ -9,6 +9,19 @@
 require_once(dirname(__DIR__).'/utils/utilslib.php');
 $scriptname = basename(__FILE__);
 
+// look for command line flags
+$opts = getopt('d::', array('database::'));
+
+// figure out which database to use
+if (isset($opts['database'])) {
+    $dbtype = $opts['database'];
+} else if (isset($opts['d'])) {
+    $dbtype = $opts['d'];
+} else {
+    // default to postgres
+    $dbtype = 'pgsql';
+}
+
 $cwd = getcwd();
 try {
     $dirroot = get_web_root($cwd);
@@ -38,7 +51,6 @@ if (!is_writeable($dataroot)) {
 }
 
 $dbname = 'fresh' . $instance;
-$dbtype = 'pgsql';
 
 // Remove old config
 if (file_exists($configfile)) {
