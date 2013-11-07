@@ -20,7 +20,7 @@ function run_codegrepper($file, $dirroot, $changedlinenumbers) {
     // Add more preg regular expressions here to match potential bugs/code issues
     $regexpclasses = array(
         // a table name should never be aliased with the AS keyword
-        'bad AS sql' => '/\{[^{}]+\}\s+AS/',
+        'bad AS sql' => '/\{[a-z][a-z0-9_]*\}\s+AS/',
         'LIMIT sql' => '/LIMIT\s+[0-9]+/',
         'wwwroot in moodle_url' => '/moodle_url\([^)]*?\$CFG\->wwwroot/',
         'unescaped like' => '/sql_like\([^\)]*%/',
