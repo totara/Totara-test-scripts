@@ -2,19 +2,26 @@
 <?php
 
 /**
- * Quick script to receive an SQL query from standard input
- * and convert moodle {tablenames} to use the prefix from
- * the current site's $CFG->prefix setting.
+ * Quick script to receive a Moodle SQL query and convert so it
+ * can be executed.
+ *
+ * This does two things:
+ *
+ * 1. Convert moodle {tablenames} to use the prefix from
+ *    the current site's $CFG->prefix setting.
+ *
+ * 2. Look for any parameters and prompt for values, substituting
+ *    if any value is proveded.
  *
  * Example:
  *
- * echo "SELECT * FROM {user}" | fixquery
+ * echo "SELECT * FROM {user} WHERE id = :id"
  *
  * with output:
  *
- * "SELECT * FROM mdl_user"
+ * "SELECT * FROM mdl_user WHERE id = 1"
  *
- * if $CFG->prefix is 'mdl_'.
+ * if $CFG->prefix is 'mdl_' and you enter 1 when prompted for id.
  *
  */
 
@@ -40,6 +47,55 @@ $settings = get_settings_from_config($configfile);
 
 $prefix = $settings->prefix;
 
-while (FALSE !== ($line = fgets(STDIN))) {
-    echo preg_replace('/\{([a-z][a-z0-9_]*)\}/', $prefix.'$1', $line);
+echo "Enter SQL statement. Type OK on a new line when finished:\n\n";
+$sql = '';
+while (FALSE !== ($line = fgets(STDIN)) && trim($line) != 'OK') {
+    $sql .= $line;
 }
+
+// Substitute table names.
+$sql = preg_replace('/\{([a-z][a-z0-9_]*)\}/m', $prefix.'$1', $sql);
+
+// Look for placeholders (named or question marks).
+$named_count = preg_match_all('/(?<!:):[a-z][a-z0-9_]*/', $sql, $named_matches);
+$q_count     = substr_count($sql, '?');
+
+// No parameters, just print now.
+if (!$named_count && !$q_count) {
+    echo $sql;
+    exit;
+}
+
+if ($named_count && $q_count) {
+    echo "Warning: Appears to be a mix of named and unnamed parameters!";
+}
+
+if ($named_count) {
+    foreach ($named_matches[0] as $match) {
+        $match = substr($match, 1);
+        echo "Value for '{$match}': ";
+        // Read from stdin
+        $value = fgets(STDIN);
+        $value = trim($value);
+        if ($value !== '') {
+            $sql = str_replace(":{$match}", $value, $sql);
+        }
+    }
+}
+
+if ($q_count) {
+    for ($i = 1; $i <= $q_count; $i++) {
+        echo "Value for param $i: ";
+        $value = fgets(STDIN);
+        $value = trim($value);
+        if ($value !== '') {
+            // Only replace first one found.
+            $pos = strpos($sql, '?');
+            if ($pos !== false) {
+                $sql = substr_replace($sql, $value, $pos, 1);
+            }
+        }
+    }
+}
+
+echo "\n" . $sql . "\n";
