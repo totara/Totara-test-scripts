@@ -48,9 +48,11 @@ function get_changed_lines($file, $dirroot, $githash = null) {
  * @return array of paths.
  */
 function local_codechecker_get_ignores($dirroot, $extraignorelist = '') {
-    global $CFG;
-
     $paths = array();
+
+    if (!file_exists($dirroot . '/lib/thirdpartylibs.xml')) {
+        return $paths;
+    }
 
     $thirdparty = simplexml_load_file($dirroot . '/lib/thirdpartylibs.xml');
     foreach ($thirdparty->xpath('/libraries/library/location') as $lib) {
