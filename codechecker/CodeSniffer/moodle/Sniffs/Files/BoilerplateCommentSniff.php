@@ -118,6 +118,15 @@ class moodle_Sniffs_Files_BoilerplateCommentSniff implements PHP_CodeSniffer_Sni
                 $file->addError('Line %s of the opening comment must start "%s".',
                         $tokenptr, 'WrongLine', array($lineindex + 1, $line));
             }
+
+            // Skip over any additional " * Copyright XXX" lines in totara copyright notices.
+            if ($lineindex == 3 && $comment == self::$commenttotara) {
+                $regex = '/^' . preg_quote(" * Copyright", '/') . '/';
+                while (preg_match($regex, $tokens[$tokenptr+1]['content'])) {
+                    $offset++;
+                    $tokenptr++;
+                }
+            }
         }
     }
 }
