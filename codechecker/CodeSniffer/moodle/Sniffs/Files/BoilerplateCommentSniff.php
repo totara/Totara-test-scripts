@@ -43,7 +43,7 @@ class moodle_Sniffs_Files_BoilerplateCommentSniff implements PHP_CodeSniffer_Sni
         "/*",
         " * This file is part of Totara LMS",
         " *",
-        " * Copyright (C) 2010 onwards Totara Learning Solutions LTD",
+        " * Copyright (C)",
         " *",
         " * This program is free software; you can redistribute it and/or modify",
         " * it under the terms of the GNU General Public License as published by",
