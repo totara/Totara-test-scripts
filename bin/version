@@ -1,5 +1,5 @@
-#!/usr/bin/php
-<?
+#!/usr/bin/env php
+<?php
 /**
  * Return version information for the current moodle/totara site
  * based on the current directory when this command is called (or

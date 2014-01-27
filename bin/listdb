@@ -1,5 +1,5 @@
-#!/usr/bin/php
-<?
+#!/usr/bin/env php
+<?php
 
 /**
  * Script to list available stored databases that can be restored

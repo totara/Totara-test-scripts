@@ -1,5 +1,5 @@
-#!/usr/bin/php
-<?
+#!/usr/bin/env php
+<?php
 
 /**
  * Script to load the database/dataroot from a stored copy

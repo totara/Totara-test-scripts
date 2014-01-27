@@ -1,5 +1,5 @@
-#!/usr/bin/php
-<?
+#!/usr/bin/env php
+<?php
 /**
  * Returns a directory path to the code wwwroot for the current
  * working directory (or another path if specified)
