@@ -118,6 +118,9 @@ function get_site_version($directory = null) {
     if (isset($TOTARA)) {
         $versions->totara = $TOTARA;
     }
+    if (isset($version) || isset($release)) {
+        $versions->moodle = new stdClass();
+    }
     if (isset($version)) {
         $versions->moodle->version = $version;
     }
