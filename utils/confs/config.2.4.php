@@ -28,7 +28,7 @@ $CFG->unittestprefix = 'unit_';
 $CFG->phpunit_prefix = 'tst_';
 $CFG->phpunit_dataroot = '%%phpunit_dataroot%%';
 
-$CFG->debug = 32767;
+$CFG->debug = E_ALL | E_STRICT;
 $CFG->debugdisplay = 1;
 $CFG->perfdebug = 15;
 

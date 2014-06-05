@@ -41,6 +41,9 @@ $CFG->passwordpolicy = false;
 $CFG->defaultcity = '%%defaultcity%%';
 $CFG->country = '%%defaultcountry%%';
 
+// Force theme for a bit for testing.
+$CFG->theme = 'standardtotararesponsive';
+
 require_once(dirname(__FILE__) . '/lib/setup.php');
 
 // There is no php closing tag in this file,
