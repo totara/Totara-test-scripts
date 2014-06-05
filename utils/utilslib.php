@@ -110,8 +110,11 @@ function get_site_version($directory = null) {
     if (!defined('MOODLE_INTERNAL')) {
         define('MOODLE_INTERNAL', 1);
     }
-    // required for MATURITY constants
-    require_once($rootdir.'/lib/setuplib.php');
+    // Required for MATURITY constants
+    // They are stored somewhere new in 2.6.
+    $maturitylib = is_readable($rootdir.'/lib/classes/component.php') ?
+        $rootdir . '/lib/classes/component.php' : $rootdir . '/lib/setuplib.php';
+    require_once($maturitylib);
     require($versionfile);
 
     $versions = new stdClass();
