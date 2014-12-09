@@ -21,6 +21,7 @@ $settings->wwwroot = 'http://localhost/%%instance%%';
 $settings->dataroot = '/path/to/moodledata/%%instance%%';
 $settings->phpunit_dataroot = '/path/to/phpunitdata/%%instance%%';
 $settings->behat_dataroot = '/path/to/behatdata/%%instance%%';
+$settings->behat_wwwroot = 'http://localhost:8000';
 
 // Backup directory path. Used by savedb/loaddb to for DB and data backups.
 $backupdir = '/tmp/backup';
