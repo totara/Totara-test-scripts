@@ -20,19 +20,7 @@ function get_web_root($directory = null) {
     if (file_exists($directory.'/config.php')) {
         $configfile = file_get_contents($directory.'/config.php');
         // check for some common contents
-        $patterns = array(
-            '/\$CFG\s=\snew/',
-            '/Moodle configuration file/',
-            '/\$CFG\->wwwroot\s*=/',
-            '/dbhost\s*=/',
-            '/dbname\s*=/',
-            '/dbuser\s*=/',
-            '/dbpass\s*=/',
-            '/\$CFG\->prefix\s*=/',
-            '|/lib/setup\.php|',
-            '/There is no php closing tag in this file/',
-        );
-
+        $patterns = get_common_config_patterns('moodle');
         $matches = 0;
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $configfile)) {
@@ -46,8 +34,8 @@ function get_web_root($directory = null) {
     }
 
     // No main config, let's look for some other common files/directories
-    $dirs = array('admin', 'blocks', 'calendar', 'course', 'install', 'lang', 'lib', 'local', 'login', 'mod', 'theme', 'user', '.git');
-    $files = array('config-dist.php', 'README.txt', 'TRADEMARK.txt', 'version.php', 'index.php');
+    $dirs = get_common_dirs('moodle');
+    $files = get_common_files('moodle');
     $matches = 0;
     foreach ($dirs as $dir) {
         if (is_dir($directory.'/'.$dir)) {
@@ -74,6 +62,60 @@ function get_web_root($directory = null) {
     }
 }
 
+function get_common_dirs($system = 'moodle') {
+    switch ($system) {
+    case 'moodle':
+        return array('admin', 'blocks', 'calendar', 'course', 'install', 'lang', 'lib', 'local', 'login', 'mod', 'theme', 'user', '.git');
+    case 'mahara':
+        return array('htdocs', 'log', 'test', 'htdocs/admin', 'htdocs/blocktype', 'htdocs/artefact');
+    default:
+        throw new Exception("Unknown system '{$system}' should be 'moodle' or 'mahara'");
+    }
+}
+
+function get_common_files($system = 'moodle') {
+    switch ($system) {
+    case 'moodle':
+        return array('config-dist.php', 'README.txt', 'TRADEMARK.txt', 'version.php', 'index.php');
+    case 'mahara':
+        return array('README', 'COPYING', 'Makefile', 'phpunit.xml', 'composer.json');
+    default:
+        throw new Exception("Unknown system '{$system}' should be 'moodle' or 'mahara'");
+    }
+}
+
+function get_common_config_patterns($system = 'moodle') {
+    switch ($system) {
+    case 'moodle':
+        return array(
+            '/\$CFG\s=\snew/',
+            '/Moodle configuration file/',
+            '/\$CFG\->wwwroot\s*=/',
+            '/dbhost\s*=/',
+            '/dbname\s*=/',
+            '/dbuser\s*=/',
+            '/dbpass\s*=/',
+            '/\$CFG\->prefix\s*=/',
+            '|/lib/setup\.php|',
+            '/There is no php closing tag in this file/',
+        );
+    case 'mahara':
+        return array(
+            '/\$cfg\s=\snew/',
+            '/MAHARA CONFIGURATION FILE/',
+            '/\$cfg\->wwwroot\s*=/',
+            '/\$cfg\->dbhost\s*=/',
+            '/\$cfg\->dbname\s*=/',
+            '/\$cfg\->dbuser\s*=/',
+            '/\$cfg\->dbpass\s*=/',
+            '/\$cfg\->dbprefix\s*=/',
+            '/closing php tag intentionally omitted to prevent whitespace issues/',
+        );
+    default:
+        throw new Exception("Unknown system '{$system}' should be 'moodle' or 'mahara'");
+    }
+
+}
 /**
  * Looks for a site within the given directory (default to current dir). If
  * found returns an object containing site version info, or false if none
