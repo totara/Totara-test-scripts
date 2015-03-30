@@ -1,0 +1,252 @@
+#!/usr/bin/env php
+<?php
+/*
+ * This file is part of Totara LMS
+ *
+ * Copyright (C) 2015 onwards Totara Learning Solutions LTD
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Valerii Kuznetsov <valerii.kuznetsov@totaralms.com>
+ * @package testtools
+ * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+if (isset($_SERVER['REMOTE_ADDR'])) {
+    die(); // No access from web!.
+}
+
+global $settings;
+require_once(dirname(dirname(__FILE__)) . '/utils/settings.php');
+
+define("CURRENT_PATH", $settings->behat_metrics_path . '/current/');
+define("BASE_PATH", $settings->behat_metrics_path . '/base/');
+
+// Checking util.php CLI script usage.
+$help = "
+Behat performance test storage manager
+
+Usage:
+    behat/storage command [options]
+
+Commands:
+    add     Add metrics to storage
+        x.y.z   Optional version of metrics to save
+    load    Load metrics from storage
+        --closest   Load closest version
+        x.y.z       Version of metrics to load
+    help, -h    Print this help
+
+Examples:
+    behat/storage add 2.7.1
+            Will move metrics from subdirectory current to base,
+            commit them and tag as 2.7.1
+    behat/storage add
+            Equal to run \"php behat/storage add x.y.z\"
+            Where x.y.z taken from current metrics data (from version.txt)
+    behat/storage load 2.7.1
+            Equal to run \"git checkout 2.7.1\" in base subdirectory
+    behat/storage load --closest 2.7.1
+            Will load maximum version from storage that is less or equal
+            to 2.7.1 according php function version_compare
+    behat/storage load --closest
+            Will load maximum version from storage that is less or equal
+            to version taken from version.txt file of current metrics
+
+More info:
+    TODO: Link to wiki
+
+";
+
+$showhelp = $argc < 1 || !in_array($argv[1], array('add', 'load'));
+
+if ($showhelp) {
+    echo $help;
+    exit(0);
+}
+
+// Run commands.
+switch($argv[1]) {
+    case 'add':
+        if (isset($argv[2])) {
+            $version = $argv[2];
+        } else {
+            list($version, $_) = get_version(CURRENT_PATH . 'version.txt');
+        }
+        $version = trim($version);
+
+        storage_move(CURRENT_PATH, BASE_PATH);
+        storage_add(BASE_PATH, $version);
+    break;
+    case 'load':
+        if (isset($argv[2]) && $argv[2] == '--closest') {
+            if (isset($argv[3])) {
+                $version = storage_get_closest($argv[3]);
+            } else {
+                list($baseversion, $_) = get_version(BASE_PATH . 'version.txt');
+                $version = storage_get_closest($baseversion);
+            }
+        }
+        else if (isset($argv[2])) {
+            $version = $argv[2];
+        } else {
+            list($version, $_) = get_version(CURRENT_PATH . 'version.txt');
+        }
+        $version = trim($version);
+
+        storage_load(BASE_PATH, $version);
+    break;
+}
+
+/**
+ * Get version data from version.txt file
+ *
+ * @param string $file full path to version.txt file
+ * @return array($version, $build);
+ */
+function get_version($file) {
+    $versiontxt = file($file);
+    if (count($versiontxt) < 2) {
+        throw new Exception("Couldn't find version.txt or it has wrong format");
+    }
+    return ($versiontxt);
+}
+
+/**
+ * Move all metrics files from $current to $base with some safety checks
+ * All files except except files/folders names beginning on "." on $base will be removed first
+ * - Script will check that $base either empty (except files/folders names beginning on ".") or has metrics.json or version.txt
+ * - Script will check that $current has metrics.json file
+ * @param string $current
+ * @param string $base
+ */
+function storage_move ($current, $base) {
+    if (!file_exists($current . 'metrics.json')) {
+        throw new Exception ("metrics.json not found in '$current'");
+    }
+    if (empty($base) || empty($current)) {
+        throw new Exception ("Both base and current dir path must be set");
+    }
+
+    $basefiles = glob("$base*");
+    if (count($basefiles) > 0) {
+        $metricsfound = false;
+        foreach ($basefiles as $filechk) {
+            if (in_array(basename($filechk), array('version.txt', 'metrics.json'))) {
+                $metricsfound = true;
+                break;
+            }
+        }
+
+        if (!$metricsfound) {
+            throw new Exception ("Current directory '$current' is not empty, but no metrics file are found");
+        }
+    }
+
+    // Clean $base.
+    foreach (glob("$base*") as $basecln) {
+        if (substr(basename($basecln), 0, 1) != '.') {
+            unlink($basecln);
+        }
+    }
+
+    // Move $current -> $base.
+    foreach (glob("$current*") as $currentmv) {
+        if (substr(basename($currentmv), 0, 1) != '.') {
+            rename($currentmv, $base . basename($currentmv));
+        }
+    }
+}
+
+/**
+ * Check exit code and if it is not 0 - return to initial dir and exit with this code.
+ *
+ * @param int $exitcode
+ * @param string $wasdir
+ */
+function check_exit($exitcode, $wasdir) {
+    if ($exitcode) {
+        chdir($wasdir);
+        exit($exitcode);
+    }
+}
+/**
+ * Add metrics in base folder to git and tag them as $version
+ *
+ * @param string $base base folder
+ * @param string $version tag version
+ */
+function storage_add($base, $version) {
+    $wasdir = getcwd();
+    $exitcode = 0;
+
+    $versionarg = escapeshellarg($version);
+    chdir($base);
+
+    system("git add .", $exitcode);
+    check_exit($exitcode, $wasdir);
+
+    system("git commit -m \"$versionarg\"");
+    check_exit($exitcode, $wasdir);
+
+    system("git tag \"$versionarg\"");
+    check_exit($exitcode, $wasdir);
+
+    chdir($wasdir);
+}
+
+/**
+ * Checkout $version from git in base folder
+ *
+ * @param string $base base folder
+ * @param string $version tag version
+ */
+function storage_load($base, $version) {
+    $wasdir = getcwd();
+    $exitcode = 0;
+
+    $versionarg = escapeshellarg($version);
+    chdir($base);
+
+    system("git checkout \"$versionarg\"", $exitcode);
+    check_exit($exitcode, $wasdir);
+
+    chdir($wasdir);
+}
+
+/**
+ * Find closest version
+ *
+ * @param string $base base folder
+ * @param int Closest found version or 0
+ */
+function storage_get_closest($base, $version) {
+    $wasdir = getcwd();
+    $exitcode = 0;
+
+    chdir($base);
+
+    exec("git tag", $output, $exitcode);
+    check_exit($exitcode, $wasdir);
+    chdir($wasdir);
+
+    $prev = 0;
+    foreach ($output as $ver) {
+        if (version_compare($ver, $prev, '>=') && version_compare($version, $ver, '>=')) {
+            $prev = $ver;
+        }
+    }
+
+    return $prev;
+}

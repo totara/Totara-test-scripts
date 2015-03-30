@@ -1,0 +1,298 @@
+#!/usr/bin/env php
+<?php
+/*
+ * This file is part of Totara LMS
+ *
+ * Copyright (C) 2015 onwards Totara Learning Solutions LTD
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Valerii Kuznetsov <valerii.kuznetsov@totaralms.com>
+ * @package testtools
+ * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+if (isset($_SERVER['REMOTE_ADDR'])) {
+    die(); // No access from web!.
+}
+
+global $settings;
+require_once(dirname(dirname(__FILE__)) . '/utils/settings.php');
+
+define("CURRENT_PATH", $settings->behat_metrics_path . '/current/');
+define("BASE_PATH", $settings->behat_metrics_path . '/base/');
+
+define("WARNING_DEFAULT", 5); // % of metrics rise to isse a warning.
+define("ERROR_DEFAULT", 10);// % of metrics rise to isse an error.
+
+ini_set('memory_limit', 2147483648); // 2GB
+
+// Checking util.php CLI script usage.
+$help = "
+Behat performance test compare tool
+
+Will compare current metrics with base. Base version should be preloaded.
+
+
+Usage:
+    behat/compare [options]
+
+Options:
+    -w=XX%  Rise of metrics will issue a warning (default is " . WARNING_DEFAULT . "%)
+    -e=XX%  Rise of metrics to issue an error (default is " . ERROR_DEFAULT . "%)
+    -v      Display all new, and removed metrics
+
+    -h, help    Print this help
+
+Examples:
+    behat/compare
+           Will compare this version with loaded in base and issue a warning if
+           metrics rise more than " . WARNING_DEFAULT . "% and error if more than " . ERROR_DEFAULT . "%
+    behat/compare -w=100%
+            Same as previous but warning will be shown if rise is more than 100%
+    behat/compare -w=100% -e=200%
+            Same as previous but error will be shown if rise is more than 200%
+    behat/compare -w=100% -e=200% -v
+            Same as previous but will show extra information
+
+More info:
+    TODO: Link to wiki
+
+";
+
+$showhelp = count($argv) == 2  && in_array($argv[1], array('-h', '--help', 'help'));
+
+if ($showhelp) {
+    echo $help;
+    exit(0);
+}
+
+// Get options.
+$warning_k = 1 + 0.01 * WARNING_DEFAULT;
+$error_k = 1 + 0.01 * ERROR_DEFAULT;
+$verbose = false;
+
+$args = $argv;
+array_shift($args);
+
+foreach ($args as $arg) {
+    $opt = substr($arg, 0, 2);
+    $val = "";
+    if ($pos = strpos($arg, '=')) {
+        $val = substr($arg, $pos + 1);
+    }
+    switch($opt) {
+        case '-w':
+            $warning_k = 1 + 0.01 * (double)$val;
+        break;
+        case '-e':
+            $error_k = 1 + 0.01 * (double)$val;
+        break;
+        case '-v':
+            $verbose = true;
+        break;
+        default:
+            echo $help;
+            exit(1);
+    }
+}
+
+$basever = json_decode(file_get_contents(BASE_PATH . '/metrics.json'), true);
+if (empty($basever)) {
+    throw new Exception("Cannot load json from '$basever'");
+}
+
+$currentver = json_decode(file_get_contents(CURRENT_PATH . '/metrics.json'), true);
+if (empty($currentver)) {
+    throw new Exception("Cannot load json from '$currentver'");
+}
+
+$exitcode = compare_all($basever,  $currentver, $warning_k, $error_k, $verbose);
+
+exit($exitcode);
+
+/**
+ * Compare two version of metrics stored in json format
+ *
+ * @param array $basever Base version of metrics
+ * @param array $currentver Current version of metrics
+ * @param double $warning_k Warning thresold
+ * @param double $error_k Error thresold
+ * @param double $verbose Should compare provide extra info
+ * @return int 0 - no errors, 1 - errros/metrics higher then error thresold
+ */
+function compare_all(array $basever, array $currentver, $warning_k, $error_k, $verbose) {
+    $new = array();
+    $del = array();
+    $wrn = array();
+    $err = array();
+
+    $currentver = compare_index($currentver);
+    foreach($basever as $base) {
+        if (isset($currentver[$base['file']][$base['scenario']][$base['step']][$base['url']]) &&
+            count($currentver[$base['file']][$base['scenario']][$base['step']][$base['url']])) {
+
+            $current = array_shift($currentver[$base['file']][$base['scenario']][$base['step']][$base['url']]);
+            $curr_m = $current['metrics'];
+            $base_m = $base['metrics'];
+
+            list($factor, $field) = compare_one($base_m, $curr_m);
+
+            if ($factor > $error_k) {
+                $err[] = array('metric' => $current, 'field' => $field, 'factor' => $factor);
+            } else if ($factor > $warning_k) {
+                $wrn[] = array('metric' => $current, 'field' => $field, 'factor' => $factor);
+            }
+
+        } else {
+            $del[] = $base;
+        }
+    }
+    $new = compare_unindex($currentver);
+
+    // Show results.
+    if ($verbose) {
+        if (count($new)) {
+            compare_info("New metrics");
+            foreach ($new as $newitem) {
+                compare_info("\t " . json_encode($newitem));
+            }
+        }
+        if (count($del)) {
+            compare_info("Removed metrics");
+            foreach ($del as $delitem) {
+                compare_info("\t " . json_encode($delitem));
+            }
+        }
+    }
+    if (count($wrn)) {
+        compare_info("Warnings:");
+        foreach ($wrn as $wrnitem) {
+            compare_warning($wrnitem['metric'], $wrnitem['field'], $wrnitem['factor']);
+        }
+    }
+    if (count($err)) {
+        compare_info("Errors:");
+        foreach ($err as $erritem) {
+            compare_error($erritem['metric'], $erritem['field'], $erritem['factor']);
+        }
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * Compare one pair of metrics
+ * @array $base
+ * @array $current
+ * @return array(double maximum factor among values, metric that made maximum factor)
+ */
+function compare_one(array $base, array $current) {
+    $max = 0;
+    $field = '';
+    print_R(array($base, $current));
+    foreach ($base as $metric => $value) {
+        if (isset($current[$metric])) {
+            $divider = ($value) == 0 ? 1 : $value;
+            $factor = $current[$metric] / $divider;
+            if ($factor > $max) {
+                $max = $factor;
+                $field = $metric;
+            }
+        }
+    }
+    return array($max, $field);
+}
+
+/**
+ * Make structured array from flat array of metrics
+ * e.g. metrics will be reorganized as $metrics[file][scenario][step][url][# of step appearance]
+ *
+ * @param array flat metrics array
+ * @return array structured metrics array
+ */
+function compare_index(array $in) {
+    $out = array();
+
+    foreach ($in as $item) {
+        $out[$item['file']][$item['scenario']][$item['step']][$item['url']][] = $item;
+    }
+
+    return $out;
+}
+
+/**
+ * Make flat array from structured array.
+ * If no metrics for some structure, it will be skipped
+ * @param array $in striuctured metrics array
+ * @return array flat metrics array
+ */
+function compare_unindex(array $in) {
+    $out = array();
+
+    foreach ($in as $scenarios) {
+        foreach ($scenarios as $steps) {
+            foreach ($steps as $urls) {
+                foreach ($urls as $metrics) {
+                    if (count($metrics)) {
+                        $out[] = $metrics;
+                    }
+                }
+            }
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * Issue warning
+ *
+ * @param array $metric
+ * @param string $field
+ * @param double $factor
+ */
+function compare_warning(array $metric, $field, $factor) {
+    $factor = ($factor - 1) * 100;
+    compare_info(sprintf("\tWarning: %s is %.2f%% bigger in: %s", $field, $factor, json_encode($metric)),
+            "warning");
+}
+
+/**
+ * Issue error
+ *
+ * @param array $metric
+ * @param string $field
+ * @param double $factor
+ */
+function compare_error(array $metric, $field, $factor) {
+    $factor = ($factor - 1) * 100;
+    compare_info(sprintf("\tError: %s is %.2f%% bigger in: %s", $field, $factor, json_encode($metric)),
+            "warning");
+}
+
+/**
+ * Info about metric
+ * @param string $message
+ * @param string $type = "error", "warning", or "log"
+ */
+function compare_info($message,  $type = 'log') {
+    switch($type) {
+        case 'error':
+            fwrite(STDERR, $message . "\n");
+        break;
+        default:
+            fwrite(STDOUT, $message . "\n");
+    }
+}
