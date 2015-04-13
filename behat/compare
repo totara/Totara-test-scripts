@@ -201,7 +201,6 @@ function compare_all(array $basever, array $currentver, $warning_k, $error_k, $v
 function compare_one(array $base, array $current) {
     $max = 0;
     $field = '';
-    print_R(array($base, $current));
     foreach ($base as $metric => $value) {
         if (isset($current[$metric])) {
             $divider = ($value) == 0 ? 1 : $value;

@@ -31,11 +31,17 @@ cp $TOOLSBEHATPATH/extra/google-chrome.list /etc/apt/sources.list.d/
 
 apt-get update
 
-# Install Java, Chrome, Xvfb, and unzip
-apt-get -y install openjdk-7-jre google-chrome-stable xvfb unzip
+# Install Chrome and firefox
+apt-get -y install google-chrome-stable firefox
+
+# Install Java, Xvfb, unzip, and imagemagick
+apt-get -y install openjdk-7-jre xvfb x11vnc ratpoison xterm unzip imagemagick
+
+# Setup display variable for xvfb and apps
+cp displayenv.sh /etc/profile.d/
 
 # Install php and apache
-apt-get -y install apache2 php5 postgresql
+apt-get -y install apache2 php5 php5-pgsql php5-curl php5-gd postgresql
 
 cd $TOOLSBEHATPATH/vendor/
 # Install Selenium Server
@@ -45,8 +51,31 @@ wget http://selenium-release.storage.googleapis.com/2.45/selenium-server-standal
 # Install chrome driver
 echo "Installing Chrome Driver for selenium v2.14"
 wget http://chromedriver.storage.googleapis.com/2.14/chromedriver_linux64.zip
+unzip chromedriver_linux64.zip -d /usr/local/bin
 
 # Install composer
-curl http://getcomposer.org/installer | php
-  
+cp composer.phar /usr/local/bin
+
+# Totara Site
+chown -R behat /var/www/html
+rm /var/www/html/*
+cd /var/www/html/
+sudo -u behat git clone ssh://review.totaralms.com:29418/totara.git .
 cd $TOOLSBEHAT
+
+# metrics storage
+mkdir /srv/metrics
+mkdir /srv/metrics/current
+mkdir /srv/metrics/base
+
+mkdir /srv/data/html
+mkdir /srv/data/phpunit_html
+mkdir /srv/data/behat_html
+
+chown -R behat /srv/metrics
+chmod -R a+w /srv/data
+
+cd /srv/metrics/base
+sudo -u behat git init
+
+/etc/profile.d/displayenv.sh

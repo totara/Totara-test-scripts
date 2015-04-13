@@ -85,11 +85,19 @@ class mydb_pgsql extends mydb {
             return false;
         }
 
+        $reporting = error_reporting();
         // kill any existing sessions
         $sql = "SELECT pg_terminate_backend(pg_stat_activity.procpid)
             FROM pg_stat_activity
             WHERE pg_stat_activity.datname = '{$dbname}'";
-        $this->query($sql);
+        try {
+            error_reporting(E_ERROR);
+            $this->query($sql);
+        }
+        catch (Exception $e) {
+            // Postgres 9.2+ does not have pg_stat_activity.procpid column.
+        }
+        error_reporting($reporting);
 
         // Now drop the database
         $sql = "DROP DATABASE \"{$dbname}\"";

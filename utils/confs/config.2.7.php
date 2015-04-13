@@ -30,6 +30,10 @@ $CFG->behat_prefix = 'bht_';
 $CFG->behat_dataroot = '%%behat_dataroot%%';
 $CFG->behat_wwwroot = '%%behat_wwwroot%%';
 
+// Metrics require MDL_PERF to be defined and path to store results.
+//$CFG->behat_metrics_path = '%%behat_metrics_path%%';
+//define('MDL_PERF', true);
+
 $CFG->debug = E_ALL | E_STRICT;
 $CFG->debugdisplay = 1;
 $CFG->perfdebug = 15;

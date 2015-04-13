@@ -1,0 +1,5 @@
+#!/bin/bash
+TOOLSPATH=/opt/testtools
+TOOLSBEHATPATH=$TOOLSPATH/behat
+TOTARADISTPATH=/var/www/html
+BEHATDATAPATH=/srv/data/behat_html

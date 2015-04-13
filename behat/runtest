@@ -1,0 +1,70 @@
+#!/bin/bash
+# Run behat test suite
+# Use tags as options for this script:
+# runtest @totaraperformance
+
+# Load env variables
+source /etc/profile.d/displayenv.sh
+
+# Get path of script
+pushd `dirname $0` > /dev/null
+SCRIPTPATH=`pwd`
+popd > /dev/null
+
+if [ ! -f $SCRIPTPATH/config ]; then
+  echo "Cannot find config file"
+  exit 1
+fi
+
+source $SCRIPTPATH/config
+
+if [ -z "$TOOLSBEHATPATH" ]; then
+  echo "Configuration variables are not set"
+  exit 1
+fi
+
+cd $TOTARADISTPATH
+
+# Reset DB.
+$TOOLSPATH/bin/resetdb
+
+# Install composer.
+# Alternatively can be copied from /usr/local/bin/composer.phar (it should be placed there by install-headless.sh).
+curl http://getcomposer.org/installer | php
+
+# Start virtual frame buffer.
+# Variable DISPLAY is set in extra/displayenv.sh
+
+echo "Starting Xvfb on display" $DISPLAY
+Xvfb $DISPLAY -screen 0 1366x768x24 -ac > /dev/null &
+
+# Wait while xvfb finish initialization
+sleep 3
+
+echo "Starting dm"
+ratpoison > /dev/null &
+
+# Start selenium.
+echo "Starting selenium"
+java -jar `find $TOOLSBEHATPATH -name selenium-server-standalone*.jar` 1> /dev/null 2> /dev/null &
+
+# Init behat.
+echo "Init behat"
+pwd
+php admin/tool/behat/cli/util.php --drop
+php admin/tool/behat/cli/init.php
+
+# Run behat.
+echo "Run behat"
+
+vendor/bin/behat --config $BEHATDATAPATH/behat/behat.yml $@
+EXITCODE=$?
+
+# TODO: Make them run as a service or kill not that violently, especially java, as there could be other services running.
+# Handle errors like ostrich.
+killall -u behat x11vnc 2> /dev/null
+killall -u behat ratpoison 2> /dev/null
+killall -u behat Xvfb 2> /dev/null
+killall -u behat java 2> /dev/null
+
+exit $EXITCODE

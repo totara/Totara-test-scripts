@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Get path of script
+pushd `dirname $0` > /dev/null
+SCRIPTPATH=`pwd`
+popd > /dev/null
+
+if [ ! -f $SCRIPTPATH/config ]; then
+  echo "Cannot find config file"
+  exit 1
+fi
+
+source $SCRIPTPATH/config
+
+if [ -z "$TOOLSBEHATPATH" ]; then
+  echo "Configuration variables are not set"
+  exit 1
+fi
+# Run compare of metrics
+$TOOLSBEHATPATH/storage load
+$TOOLSBEHATPATH/compare
