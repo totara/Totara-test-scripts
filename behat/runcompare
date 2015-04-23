@@ -17,5 +17,7 @@ if [ -z "$TOOLSBEHATPATH" ]; then
   exit 1
 fi
 # Run compare of metrics
-$TOOLSBEHATPATH/storage load
+echo "Loading stored metrics..."
+$TOOLSBEHATPATH/storage load --autoadd
+echo "Compare metrics..."
 $TOOLSBEHATPATH/compare

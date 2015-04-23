@@ -33,6 +33,11 @@ require_once(dirname(dirname(__FILE__)) . '/utils/settings.php');
 define("CURRENT_PATH", $settings->behat_metrics_path . '/current/');
 define("BASE_PATH", $settings->behat_metrics_path . '/base/');
 
+// Chars to trim from version.
+// "+" removed because version_compare cannot compare x.y.z+ versions (which make sense),
+// but for us + version is just ongoing release.
+define("TRIMCHARS", "+ \"'\n");
+
 // Checking util.php CLI script usage.
 $help = "
 Behat performance test storage manager
@@ -54,7 +59,8 @@ Examples:
             commit them and tag as 2.7.1
     behat/storage add
             Equal to run \"php behat/storage add x.y.z\"
-            Where x.y.z taken from current metrics data (from version.txt)
+            Where x.y.z is automatically taken from current metrics data
+            (from version.txt)
     behat/storage load 2.7.1
             Equal to run \"git checkout 2.7.1\" in base subdirectory
     behat/storage load --closest 2.7.1
@@ -63,9 +69,12 @@ Examples:
     behat/storage load --closest
             Will load maximum version from storage that is less or equal
             to version taken from version.txt file of current metrics
+    behat/storage load --autoadd
+            Will make attempt to load closest metrics version from storage and
+            if nothing is found it will add current metrics
 
 More info:
-    TODO: Link to wiki
+    https://dev.totaralms.com/wiki/Docs/tech/performancetesting
 
 ";
 
@@ -78,33 +87,64 @@ if ($showhelp) {
 
 // Run commands.
 switch($argv[1]) {
+    // Add new.
     case 'add':
         if (isset($argv[2])) {
             $version = $argv[2];
         } else {
             list($version, $_) = get_version(CURRENT_PATH . 'version.txt');
         }
-        $version = trim($version);
+        $version = trim($version, TRIMCHARS);
 
         storage_move(CURRENT_PATH, BASE_PATH);
         storage_add(BASE_PATH, $version);
     break;
+    // Load existing.
     case 'load':
-        if (isset($argv[2]) && $argv[2] == '--closest') {
+        $add = false;
+        list($currentversion, $_) = get_version(CURRENT_PATH . 'version.txt');
+        $currentversion = trim($currentversion, TRIMCHARS);
+
+        // --closest and --autoadd.
+        if (isset($argv[2]) && ($argv[2] == '--closest' || $argv[2] == '--autoadd')) {
+            // Allow to add version to storage if nothing is found.
+            if ($argv[2] == '--autoadd') {
+                $add = true;
+            }
+            // Check for force set version.
             if (isset($argv[3])) {
-                $version = storage_get_closest($argv[3]);
+                $version = storage_get_closest(BASE_PATH, $argv[3]);
             } else {
-                list($baseversion, $_) = get_version(BASE_PATH . 'version.txt');
-                $version = storage_get_closest($baseversion);
+                // Set version taken from version.txt
+                $version = storage_get_closest(BASE_PATH, $currentversion);
             }
         }
+        // User want exact version.
         else if (isset($argv[2])) {
-            $version = $argv[2];
-        } else {
-            list($version, $_) = get_version(CURRENT_PATH . 'version.txt');
+            // Chech for force version.
+            if (isset($argv[3])) {
+                $version = $argv[3];
+            } else {
+                // No force version - take current.
+                $version = $currentversion;
+            }
         }
-        $version = trim($version);
+        $version = trim($version, TRIMCHARS);
 
+        if (empty($version)) {
+            if (!$add || empty($currentversion)) {
+                echo "ERROR: Could not find any version info\n";
+                exit(1);
+            } else {
+                // Auto add version to storage.
+                echo "Version $currentversion was not found, adding...\n";
+                $version = $currentversion;
+                storage_move(CURRENT_PATH, BASE_PATH, true);
+                storage_add(BASE_PATH, $version);
+            }
+        }
+
+        echo "Loading version $version from storage\n";
         storage_load(BASE_PATH, $version);
     break;
 }
@@ -131,7 +171,7 @@ function get_version($file) {
  * @param string $current
  * @param string $base
  */
-function storage_move ($current, $base) {
+function storage_move ($current, $base, $onlycopy = false) {
     if (!file_exists($current . 'metrics.json')) {
         throw new Exception ("metrics.json not found in '$current'");
     }
@@ -164,7 +204,11 @@ function storage_move ($current, $base) {
     // Move $current -> $base.
     foreach (glob("$current*") as $currentmv) {
         if (substr(basename($currentmv), 0, 1) != '.') {
-            rename($currentmv, $base . basename($currentmv));
+            if ($onlycopy) {
+                copy($currentmv, $base . basename($currentmv));
+            } else {
+                rename($currentmv, $base . basename($currentmv));
+            }
         }
     }
 }
@@ -197,10 +241,13 @@ function storage_add($base, $version) {
     system("git add .", $exitcode);
     check_exit($exitcode, $wasdir);
 
-    system("git commit -m \"$versionarg\"");
+    system("git commit -m $versionarg");
     check_exit($exitcode, $wasdir);
 
-    system("git tag \"$versionarg\"");
+    // Attempt to remove previous tag (ignoring result).
+    system("git tag -d $versionarg 2> /dev/null");
+
+    system("git tag $versionarg");
     check_exit($exitcode, $wasdir);
 
     chdir($wasdir);
@@ -219,7 +266,7 @@ function storage_load($base, $version) {
     $versionarg = escapeshellarg($version);
     chdir($base);
 
-    system("git checkout \"$versionarg\"", $exitcode);
+    system("git checkout $versionarg", $exitcode);
     check_exit($exitcode, $wasdir);
 
     chdir($wasdir);
@@ -229,7 +276,8 @@ function storage_load($base, $version) {
  * Find closest version
  *
  * @param string $base base folder
- * @param int Closest found version or 0
+ * @param int Closest found version or ''
+ * @return string
  */
 function storage_get_closest($base, $version) {
     $wasdir = getcwd();
@@ -241,8 +289,9 @@ function storage_get_closest($base, $version) {
     check_exit($exitcode, $wasdir);
     chdir($wasdir);
 
-    $prev = 0;
+    $prev = '';
     foreach ($output as $ver) {
+        $ver = trim($ver, TRIMCHARS);
         if (version_compare($ver, $prev, '>=') && version_compare($version, $ver, '>=')) {
             $prev = $ver;
         }

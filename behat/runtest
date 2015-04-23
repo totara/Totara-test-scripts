@@ -26,11 +26,11 @@ fi
 cd $TOTARADISTPATH
 
 # Reset DB.
-$TOOLSPATH/bin/resetdb
+#$TOOLSPATH/bin/resetdb
 
 # Install composer.
-# Alternatively can be copied from /usr/local/bin/composer.phar (it should be placed there by install-headless.sh).
-curl http://getcomposer.org/installer | php
+# Alternatively can be installed: curl http://getcomposer.org/installer | php
+cp /usr/local/bin/composer.phar .
 
 # Start virtual frame buffer.
 # Variable DISPLAY is set in extra/displayenv.sh

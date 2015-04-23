@@ -67,7 +67,7 @@ Examples:
             Same as previous but will show extra information
 
 More info:
-    TODO: Link to wiki
+    https://dev.totaralms.com/wiki/Docs/tech/performancetesting
 
 ";
 
@@ -189,6 +189,7 @@ function compare_all(array $basever, array $currentver, $warning_k, $error_k, $v
         }
         return 1;
     }
+    echo "Metrics looks fine\n";
     return 0;
 }
 
