@@ -41,12 +41,17 @@ Xvfb $DISPLAY -screen 0 1366x768x24 -ac > /dev/null &
 # Wait while xvfb finish initialization
 sleep 3
 
-echo "Starting dm"
+echo "Starting ratpoison dm..."
+which ratpoison 2>/dev/null
+if [ $? -ne 0 ]; then
+  echo 'Could not find ratpoison on system, is it installed ?'
+  exit 1
+fi
 ratpoison > /dev/null &
 
 # Start selenium.
 echo "Starting selenium"
-java -jar `find $TOOLSBEHATPATH -name selenium-server-standalone*.jar` 1> /dev/null 2> /dev/null &
+java -jar `find $TOOLSBEHATPATH -name selenium-server-standalone*.jar` > /dev/null 2>&1 &
 
 # Init behat.
 echo "Init behat"
