@@ -87,7 +87,7 @@ class mydb_pgsql extends mydb {
 
         $reporting = error_reporting();
         // kill any existing sessions
-        $sql = "SELECT pg_terminate_backend(pg_stat_activity.procpid)
+        $sql = "SELECT pg_terminate_backend(pg_stat_activity.pid)
             FROM pg_stat_activity
             WHERE pg_stat_activity.datname = '{$dbname}'";
         try {
