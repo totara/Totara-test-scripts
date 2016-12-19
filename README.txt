@@ -21,6 +21,9 @@ resetdb - do a fresh install based on the current code
 savedb  - backup the database and dataroot for the current site to a named backup
 loaddb  - restore the database and dataroot for the current site from a named backup
 listdb  - list all available backups for the current site's database type
+startdb - load a database then upgrade to latest code from it. If no db given, this
+          command tries to load the best option from a named backup matching the
+          pattern 'startdb[versionnumber]' or 'startdb'.
 
 INSTALL
 =======

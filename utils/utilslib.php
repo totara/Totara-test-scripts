@@ -217,6 +217,74 @@ function get_best_config($version, $type='config') {
     throw new Exception("No config file template old enough for version '{$version}'");
 }
 
+function get_best_startdb($version, $dbtype) {
+
+    // Do some cleanup to handle odd version numbers.
+    $version = preg_replace('/[^0-9.]/', '', $version);
+    if (strpos($version, '.') === false) {
+        $version = number_format($version, 1);
+    }
+
+    if (version_compare($version, '9.0', '>=')) {
+        // Handle new totara versioning (9+).
+        $majorversion = substr($version, 0, strpos($version, '.'));
+
+        // Work down from current version to 9 until we find a match.
+        while ($majorversion >= 9) {
+            if (has_backup("startdb{$majorversion}", $dbtype)) {
+                return "startdb{$majorversion}";
+            }
+            $majorversion--;
+        }
+    }
+
+    // Check the older versions case-by-case due to odd numbering scheme.
+    $versionstocheck = ['2.9','2.7','2.6','2.5','2.4','2.2','1.1','1.0'];
+    foreach ($versionstocheck as $tocheck) {
+        if (version_compare($tocheck, $version, '>')) {
+            continue;
+        }
+        if (has_backup("startdb{$tocheck}", $dbtype)) {
+            return "startdb{$tocheck}";
+        }
+    }
+
+    // Final option.
+    if (has_backup('startdb', $dbtype)) {
+        return 'startdb';
+    }
+    // No suitable startdb found.
+    return false;
+}
+
+function has_backup($name, $dbtype) {
+    $backupdir = get_backup_directory();
+    $dbbackupdir = $backupdir . '/dbs';
+    $databackupdir = $backupdir . '/data';
+
+    if (!is_readable($dbbackupdir)) {
+        return false;
+    }
+
+    if (!is_readable($databackupdir)) {
+        return false;
+    }
+
+    $dbfilename = $dbbackupdir . '/' . $name . '.' . $dbtype;
+
+    if (!is_readable($dbfilename)) {
+        return false;
+    }
+
+    $datafilename = $databackupdir . '/' . $name . '.zip';
+
+    if (!is_readable($datafilename)) {
+        return false;
+    }
+
+    return true;
+}
+
 /**
  * Given a config template file and an object containing variables, substitute the
  * placeholders and return the completed config.php file.
@@ -439,6 +507,17 @@ function cli_install($dbtype, $dbname, $dirroot) {
 
     $clicommand = get_cli_install_command($dirroot, $dbtype, $dbname);
 
+    chdir($dirroot);
+    // run the command printing output in real-time
+    $handle = popen($clicommand, 'r');
+    while (!feof($handle)) {
+        echo fread($handle, 2096);
+    }
+    pclose($handle);
+}
+
+function cli_upgrade($dirroot) {
+    $clicommand =  "php admin/cli/upgrade.php --non-interactive --allow-unstable";
     chdir($dirroot);
     // run the command printing output in real-time
     $handle = popen($clicommand, 'r');
