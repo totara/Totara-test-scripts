@@ -36,13 +36,11 @@ $CFG->perfdebug = 15;
 $CFG->cachejs = false;
 $CFG->langstringcache = false;
 $CFG->themedesignermode = true;
+$CFG->allowthemechangeonurl = true;
 
 $CFG->passwordpolicy = false;
 $CFG->defaultcity = '%%defaultcity%%';
 $CFG->country = '%%defaultcountry%%';
-
-// Force theme for a bit for testing.
-$CFG->theme = 'standardtotararesponsive';
 
 require_once(dirname(__FILE__) . '/lib/setup.php');
 

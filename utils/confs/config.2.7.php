@@ -29,6 +29,28 @@ $CFG->phpunit_dataroot = '%%phpunit_dataroot%%';
 $CFG->behat_prefix = 'bht_';
 $CFG->behat_dataroot = '%%behat_dataroot%%';
 $CFG->behat_wwwroot = '%%behat_wwwroot%%';
+$CFG->behat_config = array(
+    'chrome' => array(
+        'extensions' => array(
+            'Behat\MinkExtension\Extension' => array(
+                'selenium2' => array(
+                    'browser' => 'chrome',
+                    'wd_host' => 'http://localhost:4444/wd/hub'
+                )
+            )
+        )
+    ),
+    'firefox' => array(
+        'extensions' => array(
+            'Behat\MinkExtension\Extension' => array(
+                'selenium2' => array(
+                    'browser' => 'firefox',
+                    'wd_host' => 'http://localhost:4444/wd/hub'
+                )
+            )
+        )
+    ),
+);
 
 // Metrics require MDL_PERF to be defined and path to store results.
 //$CFG->behat_metrics_path = '%%behat_metrics_path%%';
@@ -41,14 +63,21 @@ $CFG->perfdebug = 15;
 $CFG->cachejs = false;
 $CFG->langstringcache = false;
 $CFG->themedesignermode = true;
+$CFG->allowthemechangeonurl = true;
+$CFG->debugallowscheduledtaskoverride = true;
 
 $CFG->passwordpolicy = false;
 $CFG->defaultcity = '%%defaultcity%%';
 $CFG->country = '%%defaultcountry%%';
 
+$CFG->sessiontimeout = 4*60*60;
+
 // Some optional useful settings
 //$CFG->noemailever = true;
 //$CFG->divertallemailsto = 'simon.coggins@totaralms.com';
+
+// Divert mail to mailcatcher
+$CFG->smtphosts = 'localhost:1025';
 
 require_once(dirname(__FILE__) . '/lib/setup.php');
 

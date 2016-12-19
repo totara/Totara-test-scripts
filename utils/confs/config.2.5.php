@@ -36,6 +36,8 @@ $CFG->perfdebug = 15;
 $CFG->cachejs = false;
 $CFG->langstringcache = false;
 $CFG->themedesignermode = true;
+$CFG->allowthemechangeonurl = true;
+$CFG->debugallowscheduledtaskoverride = true;
 
 $CFG->passwordpolicy = false;
 $CFG->defaultcity = '%%defaultcity%%';
