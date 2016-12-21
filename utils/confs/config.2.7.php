@@ -1,4 +1,4 @@
-<?php  // Totara 2.5 configuration file
+<?php  // Totara 2.7 configuration file
 
 unset($CFG);
 global $CFG;

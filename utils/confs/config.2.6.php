@@ -1,4 +1,4 @@
-<?php  // Totara 2.5 configuration file
+<?php  // Totara 2.6 configuration file
 
 unset($CFG);
 global $CFG;
@@ -28,6 +28,29 @@ $CFG->phpunit_prefix = 'tst_';
 $CFG->phpunit_dataroot = '%%phpunit_dataroot%%';
 $CFG->behat_prefix = 'bht_';
 $CFG->behat_dataroot = '%%behat_dataroot%%';
+$CFG->behat_wwwroot = '%%behat_wwwroot%%';
+$CFG->behat_config = array(
+    'chrome' => array(
+        'extensions' => array(
+            'Behat\MinkExtension\Extension' => array(
+                'selenium2' => array(
+                    'browser' => 'chrome',
+                    'wd_host' => 'http://localhost:4444/wd/hub'
+                )
+            )
+        )
+    ),
+    'firefox' => array(
+        'extensions' => array(
+            'Behat\MinkExtension\Extension' => array(
+                'selenium2' => array(
+                    'browser' => 'firefox',
+                    'wd_host' => 'http://localhost:4444/wd/hub'
+                )
+            )
+        )
+    ),
+);
 
 $CFG->debug = E_ALL | E_STRICT;
 $CFG->debugdisplay = 1;
@@ -41,6 +64,9 @@ $CFG->allowthemechangeonurl = true;
 $CFG->passwordpolicy = false;
 $CFG->defaultcity = '%%defaultcity%%';
 $CFG->country = '%%defaultcountry%%';
+
+// Divert mail to mailcatcher
+$CFG->smtphosts = 'localhost:1025';
 
 require_once(dirname(__FILE__) . '/lib/setup.php');
 
