@@ -18,38 +18,29 @@ function get_web_root($directory = null) {
     }
 
     if (file_exists($directory.'/config.php')) {
-        $configfile = file_get_contents($directory.'/config.php');
-        // check for some common contents
-        $patterns = get_common_config_patterns('moodle');
-        $matches = 0;
-        foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $configfile)) {
-                $matches++;
-            }
+        $configtype = is_site_config_file($directory.'/config.php', 0.5);
+        if ($configtype == 'moodle') {
+            return $directory;
+        } else if ($configtype == 'mahara') {
+            //
+            // In mahara/social, config.php is inside htdocs/ folder
+            // so webroot is one level up.
+            return dirname($directory);
         }
-        if (($matches / count($patterns) >= 0.5)) {
-            // assume this is a moodle main config file
+
+        // otherwise keep checking in case site has no config.php.
+    } else if (file_exists($directory.'/htdocs/config.php')) {
+        // Second check specifically for mahara/social.
+        $configtype = is_site_config_file($directory.'/htdocs/config.php', 0.5);
+        if ($configtype == 'mahara') {
             return $directory;
         }
     }
 
     // No main config, let's look for some other common files/directories
-    $dirs = get_common_dirs('moodle');
-    $files = get_common_files('moodle');
-    $matches = 0;
-    foreach ($dirs as $dir) {
-        if (is_dir($directory.'/'.$dir)) {
-            $matches++;
-        }
-    }
-    foreach ($files as $file) {
-        if (file_exists($directory.'/'.$file)) {
-            $matches++;
-        }
-    }
 
-    if ($matches / (count($dirs) + count($files)) >= 0.75) {
-        // assume this is the main moodle folder but with no config
+    $dirtype = is_site_root_folder($directory);
+    if ($dirtype == 'moodle' || $dirtype == 'mahara') {
         return $directory;
     }
 
@@ -60,6 +51,124 @@ function get_web_root($directory = null) {
         // try parent directory
         return get_web_root(dirname($directory));
     }
+}
+
+/**
+ * Determine if the specified directory is part of a
+ * moodle/totara install or a social/mahara install.
+ *
+ * @param string $directory Full path to folder.
+ * @return string|boolean 'moodle', 'mahara' or false if site type can't be determined.
+ */
+function get_site_type($directory) {
+    $wwwroot = get_web_root($directory);
+
+    $config = null;
+    if (file_exists($wwwroot.'/config.php')) {
+        if (is_site_config_file($wwwroot.'/config.php') == 'moodle') {
+            $config = 'moodle';
+        } else {
+            $config = false;
+        }
+    }
+    if (file_exists($wwwroot.'/htdocs/config.php')) {
+        if (is_site_config_file($wwwroot.'/htdocs/config.php') == 'mahara') {
+            $config = 'mahara';
+        } else {
+            $config = false;
+        }
+    }
+
+    $dirs = is_site_root_folder($wwwroot);
+
+    if ($config == 'moodle' && $dirs == 'moodle') {
+        // definitely moodle.
+        return 'moodle';
+    } else if ($config == 'mahara' && $dirs == 'mahara') {
+        // definitely mahara.
+        return 'mahara';
+    } else if (is_null($config) && $dirs !== false) {
+        // config.php missing, dirs is good enough.
+        return $dirs;
+    } else {
+        // Inconsistent or can't tell.
+        return false;
+    }
+
+}
+
+/**
+ * Determine if a specified config.php file is likely to be
+ * the root config.php file for a moodle/totara or
+ * mahara/social site.
+ * @param $configpath string Full path to the file.
+ * @param $matchquality float Fraction of patterns the file must contain to be considered a match.
+ * @return string|boolean Returns 'moodle' for moodle/totara site config.php, 'mahara' for mahara/social site config.php or false if
+ * neither.
+ */
+function is_site_config_file($configpath, $matchquality = 0.5) {
+    $configfile = file_get_contents($configpath);
+    // check for some common contents
+    $patterns = get_common_config_patterns('moodle');
+    $matches = 0;
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $configfile)) {
+            $matches++;
+        }
+    }
+    if (($matches / count($patterns) >= $matchquality)) {
+        // assume this is a moodle main config file
+        return 'moodle';
+    }
+    $patterns = get_common_config_patterns('mahara');
+    $matches = 0;
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $configfile)) {
+            $matches++;
+        }
+    }
+    if (($matches / count($patterns) >= $matchquality)) {
+        // assume this is a moodle main config file
+        return 'mahara';
+    }
+
+    return false;
+}
+
+/**
+ * Determine if the specified directory is likely to be a
+ * root moodle/totara or mahara/social site.
+ *
+ * @param $directory string Full path to the folder.
+ * @param $matchquality float Fraction of patterns the file must contain to be considered a match.
+ * @return string|boolean Returns 'moodle' for moodle/totara site config.php, 'mahara' for mahara/social site config.php or false if
+ * neither.
+ */
+function is_site_root_folder($directory, $matchquality = 0.75) {
+
+    // Check for a moodle/totara site first, then for mahara/social.
+    foreach (['moodle', 'mahara'] as $type) {
+        $dirs = get_common_dirs($type);
+        $files = get_common_files($type);
+        $matches = 0;
+        foreach ($dirs as $dir) {
+            if (is_dir($directory.'/'.$dir)) {
+                $matches++;
+            }
+        }
+        foreach ($files as $file) {
+            if (file_exists($directory.'/'.$file)) {
+                $matches++;
+            }
+        }
+
+        if ($matches / (count($dirs) + count($files)) >= $matchquality) {
+            // assume this is the main folder
+            return $type;
+        }
+    }
+
+    return false;
 }
 
 function get_common_dirs($system = 'moodle') {
@@ -78,7 +187,7 @@ function get_common_files($system = 'moodle') {
     case 'moodle':
         return array('config-dist.php', 'README.txt', 'TRADEMARK.txt', 'version.php', 'index.php');
     case 'mahara':
-        return array('README', 'COPYING', 'Makefile', 'phpunit.xml', 'composer.json');
+        return array('README', 'COPYING', 'Makefile', 'CHANGELOG', 'gulpfile.js');
     default:
         throw new Exception("Unknown system '{$system}' should be 'moodle' or 'mahara'");
     }
@@ -102,7 +211,6 @@ function get_common_config_patterns($system = 'moodle') {
     case 'mahara':
         return array(
             '/\$cfg\s=\snew/',
-            '/MAHARA CONFIGURATION FILE/',
             '/\$cfg\->wwwroot\s*=/',
             '/\$cfg\->dbhost\s*=/',
             '/\$cfg\->dbname\s*=/',

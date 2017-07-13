@@ -1,8 +1,5 @@
 Some ideas for new scripts:
 
-* save  - copy db and data for site based on *current* instance to safe place
-* load  - restore named db and data for site based on *current* instance from safe place
-          option to pull in remote db backups e.g. t1.1.4, m2.2.8 (or closest db before site's version)
 * push/pop - same as save/load but with a stack
 * modconf - modify one or more params in the config only
 * test - setup unit tests and run them
