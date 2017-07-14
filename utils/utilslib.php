@@ -19,9 +19,9 @@ function get_web_root($directory = null) {
 
     if (file_exists($directory.'/config.php')) {
         $configtype = is_site_config_file($directory.'/config.php', 0.5);
-        if ($configtype == 'moodle') {
+        if ($configtype == 'platform_learn') {
             return $directory;
-        } else if ($configtype == 'mahara') {
+        } else if ($configtype == 'platform_social') {
             //
             // In mahara/social, config.php is inside htdocs/ folder
             // so webroot is one level up.
@@ -32,7 +32,7 @@ function get_web_root($directory = null) {
     } else if (file_exists($directory.'/htdocs/config.php')) {
         // Second check specifically for mahara/social.
         $configtype = is_site_config_file($directory.'/htdocs/config.php', 0.5);
-        if ($configtype == 'mahara') {
+        if ($configtype == 'platform_social') {
             return $directory;
         }
     }
@@ -40,13 +40,13 @@ function get_web_root($directory = null) {
     // No main config, let's look for some other common files/directories
 
     $dirtype = is_site_root_folder($directory);
-    if ($dirtype == 'moodle' || $dirtype == 'mahara') {
+    if ($dirtype == 'platform_learn' || $dirtype == 'platform_social') {
         return $directory;
     }
 
     if (dirname($directory) == $directory) {
         // we've reached the top level directory
-        throw new Exception('Could not find Moodle root directory');
+        throw new Exception('Could not find root directory');
     } else {
         // try parent directory
         return get_web_root(dirname($directory));
@@ -58,22 +58,22 @@ function get_web_root($directory = null) {
  * moodle/totara install or a social/mahara install.
  *
  * @param string $directory Full path to folder.
- * @return string|boolean 'moodle', 'mahara' or false if site type can't be determined.
+ * @return string|boolean 'platform_learn', 'platform_social' or false if site type can't be determined.
  */
 function get_site_type($directory) {
     $wwwroot = get_web_root($directory);
 
     $config = null;
     if (file_exists($wwwroot.'/config.php')) {
-        if (is_site_config_file($wwwroot.'/config.php') == 'moodle') {
-            $config = 'moodle';
+        if (is_site_config_file($wwwroot.'/config.php') == 'platform_learn') {
+            $config = 'platform_learn';
         } else {
             $config = false;
         }
     }
     if (file_exists($wwwroot.'/htdocs/config.php')) {
-        if (is_site_config_file($wwwroot.'/htdocs/config.php') == 'mahara') {
-            $config = 'mahara';
+        if (is_site_config_file($wwwroot.'/htdocs/config.php') == 'platform_social') {
+            $config = 'platform_social';
         } else {
             $config = false;
         }
@@ -81,12 +81,12 @@ function get_site_type($directory) {
 
     $dirs = is_site_root_folder($wwwroot);
 
-    if ($config == 'moodle' && $dirs == 'moodle') {
-        // definitely moodle.
-        return 'moodle';
-    } else if ($config == 'mahara' && $dirs == 'mahara') {
-        // definitely mahara.
-        return 'mahara';
+    if ($config == 'platform_learn' && $dirs == 'platform_learn') {
+        // definitely LMSe
+        return 'platform_learn';
+    } else if ($config == 'platform_social' && $dirs == 'platform_social') {
+        // definitely social.
+        return 'platform_social';
     } else if (is_null($config) && $dirs !== false) {
         // config.php missing, dirs is good enough.
         return $dirs;
@@ -103,13 +103,13 @@ function get_site_type($directory) {
  * mahara/social site.
  * @param $configpath string Full path to the file.
  * @param $matchquality float Fraction of patterns the file must contain to be considered a match.
- * @return string|boolean Returns 'moodle' for moodle/totara site config.php, 'mahara' for mahara/social site config.php or false if
+ * @return string|boolean Returns 'platform_learn' for moodle/totara site config.php, 'platform_social' for mahara/social site config.php or false if
  * neither.
  */
 function is_site_config_file($configpath, $matchquality = 0.5) {
     $configfile = file_get_contents($configpath);
     // check for some common contents
-    $patterns = get_common_config_patterns('moodle');
+    $patterns = platform_learn::get_common_config_patterns();
     $matches = 0;
     foreach ($patterns as $pattern) {
         if (preg_match($pattern, $configfile)) {
@@ -118,9 +118,9 @@ function is_site_config_file($configpath, $matchquality = 0.5) {
     }
     if (($matches / count($patterns) >= $matchquality)) {
         // assume this is a moodle main config file
-        return 'moodle';
+        return 'platform_learn';
     }
-    $patterns = get_common_config_patterns('mahara');
+    $patterns = platform_social::get_common_config_patterns();
     $matches = 0;
     foreach ($patterns as $pattern) {
         if (preg_match($pattern, $configfile)) {
@@ -129,7 +129,7 @@ function is_site_config_file($configpath, $matchquality = 0.5) {
     }
     if (($matches / count($patterns) >= $matchquality)) {
         // assume this is a moodle main config file
-        return 'mahara';
+        return 'platform_social';
     }
 
     return false;
@@ -141,15 +141,15 @@ function is_site_config_file($configpath, $matchquality = 0.5) {
  *
  * @param $directory string Full path to the folder.
  * @param $matchquality float Fraction of patterns the file must contain to be considered a match.
- * @return string|boolean Returns 'moodle' for moodle/totara site config.php, 'mahara' for mahara/social site config.php or false if
+ * @return string|boolean Returns 'platform_learn' for moodle/totara site config.php, 'platform_social' for mahara/social site config.php or false if
  * neither.
  */
 function is_site_root_folder($directory, $matchquality = 0.75) {
 
     // Check for a moodle/totara site first, then for mahara/social.
-    foreach (['moodle', 'mahara'] as $type) {
-        $dirs = get_common_dirs($type);
-        $files = get_common_files($type);
+    foreach (['platform_learn', 'platform_social'] as $type) {
+        $dirs = $type::get_common_dirs();
+        $files = $type::get_common_files();
         $matches = 0;
         foreach ($dirs as $dir) {
             if (is_dir($directory.'/'.$dir)) {
@@ -171,59 +171,55 @@ function is_site_root_folder($directory, $matchquality = 0.75) {
     return false;
 }
 
-function get_common_dirs($system = 'moodle') {
-    switch ($system) {
-    case 'moodle':
-        return array('admin', 'blocks', 'calendar', 'course', 'install', 'lang', 'lib', 'local', 'login', 'mod', 'theme', 'user', '.git');
-    case 'mahara':
-        return array('htdocs', 'log', 'test', 'htdocs/admin', 'htdocs/blocktype', 'htdocs/artefact');
-    default:
-        throw new Exception("Unknown system '{$system}' should be 'moodle' or 'mahara'");
+/**
+ * Given a config template file and an object containing variables, substitute the
+ * placeholders and return the completed config.php file.
+ *
+ * @param string $template Config template as a string (with placeholders)
+ * @param object $vars Object containing placeholder values (as object properties)
+ * @return string Final config with placeholders substituted
+ */
+function substitute_template_config($template, $vars) {
+    $find = $replace = array();
+    foreach ($vars as $prop => $value) {
+        $find[] = '%%' . $prop . '%%';
+        $replace[] = $value;
+    }
+
+    return str_replace($find, $replace, $template);
+
+}
+
+/**
+ * Merge two objects by creating an object containing the properties of both.
+ * If the same property exists in both objects, the version from $object2 is retained
+ *
+ * @param object $object1 The first object
+ * @param object $object2 The second object
+ * @return object The merged object to return
+ */
+function merge_objects($object1, $object2) {
+    return (object) array_merge((array) $object1, (array) $object2);
+}
+
+/**
+ * Recursively delete contents of a directory
+ *
+ * @param string $dirpath Path to the directory to empty
+ */
+function delete_directory_contents($dirpath) {
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator(
+            $dirpath,
+            FilesystemIterator::SKIP_DOTS
+        ),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($files as $path) {
+            $path->isFile() ? unlink($path->getPathname()) : rmdir($path->getPathname());
     }
 }
 
-function get_common_files($system = 'moodle') {
-    switch ($system) {
-    case 'moodle':
-        return array('config-dist.php', 'README.txt', 'TRADEMARK.txt', 'version.php', 'index.php');
-    case 'mahara':
-        return array('README', 'COPYING', 'Makefile', 'CHANGELOG', 'gulpfile.js');
-    default:
-        throw new Exception("Unknown system '{$system}' should be 'moodle' or 'mahara'");
-    }
-}
-
-function get_common_config_patterns($system = 'moodle') {
-    switch ($system) {
-    case 'moodle':
-        return array(
-            '/\$CFG\s=\snew/',
-            '/Moodle configuration file/',
-            '/\$CFG\->wwwroot\s*=/',
-            '/dbhost\s*=/',
-            '/dbname\s*=/',
-            '/dbuser\s*=/',
-            '/dbpass\s*=/',
-            '/\$CFG\->prefix\s*=/',
-            '|/lib/setup\.php|',
-            '/There is no php closing tag in this file/',
-        );
-    case 'mahara':
-        return array(
-            '/\$cfg\s=\snew/',
-            '/\$cfg\->wwwroot\s*=/',
-            '/\$cfg\->dbhost\s*=/',
-            '/\$cfg\->dbname\s*=/',
-            '/\$cfg\->dbuser\s*=/',
-            '/\$cfg\->dbpass\s*=/',
-            '/\$cfg\->dbprefix\s*=/',
-            '/closing php tag intentionally omitted to prevent whitespace issues/',
-        );
-    default:
-        throw new Exception("Unknown system '{$system}' should be 'moodle' or 'mahara'");
-    }
-
-}
 /**
  * Looks for a site within the given directory (default to current dir). If
  * found returns an object containing site version info, or false if none
@@ -243,7 +239,7 @@ function get_common_config_patterns($system = 'moodle') {
  *        [build] => (Build: 20130318)
  *        [release] => 2.4.3 (Build: 20130318)
  *    )
- * )
+* )
  *
  * The 'totara' property is not defined if the site is a moodle site.
  *
@@ -394,25 +390,6 @@ function has_backup($name, $dbtype) {
 }
 
 /**
- * Given a config template file and an object containing variables, substitute the
- * placeholders and return the completed config.php file.
- *
- * @param string $template Config template as a string (with placeholders)
- * @param object $vars Object containing placeholder values (as object properties)
- * @return string Final config with placeholders substituted
- */
-function substitute_template_config($template, $vars) {
-    $find = $replace = array();
-    foreach ($vars as $prop => $value) {
-        $find[] = '%%' . $prop . '%%';
-        $replace[] = $value;
-    }
-
-    return str_replace($find, $replace, $template);
-
-}
-
-/**
  * Load the settings, substituting the instance when
  * necessary
  *
@@ -536,18 +513,6 @@ function get_database_settings($dbtype, $dbname, $version) {
     return $settings;
 }
 
-/**
- * Merge two objects by creating an object containing the properties of both.
- * If the same property exists in both objects, the version from $object2 is retained
- *
- * @param object $object1 The first object
- * @param object $object2 The second object
- * @return object The merged object to return
- */
-function merge_objects($object1, $object2) {
-    return (object) array_merge((array) $object1, (array) $object2);
-}
-
 /*
  * Returns the $CFG object that would be generated by the config.php
  * file located at $configfile.
@@ -577,24 +542,6 @@ function get_settings_from_config($configfile) {
 
     return $CFG;
 
-}
-
-/**
- * Recursively delete contents of a directory
- *
- * @param string $dirpath Path to the directory to empty
- */
-function delete_directory_contents($dirpath) {
-    $files = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator(
-            $dirpath,
-            FilesystemIterator::SKIP_DOTS
-        ),
-        RecursiveIteratorIterator::CHILD_FIRST
-    );
-    foreach ($files as $path) {
-            $path->isFile() ? unlink($path->getPathname()) : rmdir($path->getPathname());
-    }
 }
 
 /**
@@ -678,5 +625,76 @@ function get_cli_install_command($dirroot, $dbtype, $dbname) {
     $settings = merge_objects($settings, $dbsettings);
     $clicommand = substitute_template_config($clitemplate, $settings);
     return $clicommand;
+}
+
+
+
+/**
+ * Class for managing platform specific code.
+ */
+class platform_base {
+    public static function get_common_dirs() {
+        $class = get_called_class();
+        throw new Exception("Platform class '{$class}' must implement get_common_dirs()");
+    }
+
+    public static function get_common_files() {
+        $class = get_called_class();
+        throw new Exception("Platform class '{$class}' must implement get_common_files()");
+    }
+    public static function get_common_config_patterns() {
+        $class = get_called_class();
+        throw new Exception("Platform class '{$class}' must implement get_common_config_patterns()");
+    }
+}
+
+/**
+ * Class for managing Totara Learn specific code.
+ */
+class platform_learn extends platform_base {
+    public static function get_common_dirs() {
+        return array('admin', 'blocks', 'calendar', 'course', 'install', 'lang', 'lib', 'local', 'login', 'mod', 'theme', 'user', '.git');
+    }
+    public static function get_common_files() {
+        return array('config-dist.php', 'README.txt', 'TRADEMARK.txt', 'version.php', 'index.php');
+    }
+    public static function get_common_config_patterns() {
+        return array(
+            '/\$CFG\s=\snew/',
+            '/Moodle configuration file/',
+            '/\$CFG\->wwwroot\s*=/',
+            '/dbhost\s*=/',
+            '/dbname\s*=/',
+            '/dbuser\s*=/',
+            '/dbpass\s*=/',
+            '/\$CFG\->prefix\s*=/',
+            '|/lib/setup\.php|',
+            '/There is no php closing tag in this file/',
+        );
+    }
+}
+
+/**
+ * Class for managing Totara Social specific code.
+ */
+class platform_social extends platform_base {
+    public static function get_common_dirs() {
+        return array('htdocs', 'log', 'test', 'htdocs/admin', 'htdocs/blocktype', 'htdocs/artefact');
+    }
+    public static function get_common_files() {
+        return array('README', 'COPYING', 'Makefile', 'CHANGELOG', 'gulpfile.js');
+    }
+    public static function get_common_config_patterns() {
+        return array(
+            '/\$cfg\s=\snew/',
+            '/\$cfg\->wwwroot\s*=/',
+            '/\$cfg\->dbhost\s*=/',
+            '/\$cfg\->dbname\s*=/',
+            '/\$cfg\->dbuser\s*=/',
+            '/\$cfg\->dbpass\s*=/',
+            '/\$cfg\->dbprefix\s*=/',
+            '/closing php tag intentionally omitted to prevent whitespace issues/',
+        );
+    }
 }
 

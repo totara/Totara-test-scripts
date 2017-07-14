@@ -1,3 +1,22 @@
+Resetdb for social TODO:
+
+* Review the following methods and determine which need to be moved into platform class
+  and references updated in all scripts:
+ * get_site_version() (YES)
+ * get_best_config() (YES)
+ * get_best_startdb() (YES)
+ * has_backup() (YES)
+ * get_instance_settings() (YES)
+ * get_backup_directory() (YES)
+ * normalise_dbtype() (YES)
+ * get_database_settings() (YES)
+ * get_settings_from_config() (YES)
+ * cli_install() (YES)
+ * cli_upgrade() (YES)
+ * get_config_file() (YES)
+ * get_cli_install_command() (YES)
+
+
 Some ideas for new scripts:
 
 * push/pop - same as save/load but with a stack
