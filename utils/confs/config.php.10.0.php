@@ -32,14 +32,20 @@ $CFG->behat_wwwroot = '%%behat_wwwroot%%';
 $CFG->behat_config = array(
     'chrome' => array(
         'extensions' => array(
-            'Behat\MinkExtension\Extension' => array(
+            'Behat\MinkExtension' => array(
                 'selenium2' => array(
                     'browser' => 'chrome',
-                    'wd_host' => 'http://localhost:4444/wd/hub',
+                    'wd_host' => 'http://127.0.0.1:4444/wd/hub',
                     'capabilities' => array(
-                        'chrome' => array(
-                            'switches' => array(
-                                '--disable-infobars'
+                        'extra_capabilities' => array(
+                            'chromeOptions' => array(
+                                'args' => array(
+                                    '--disable-infobars',
+                                    '--disable-background-throttling'
+                                ),
+                                'prefs' => array(
+                                    'credentials_enable_service' => false,
+                                )
                             )
                         )
                     )
