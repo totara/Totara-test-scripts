@@ -1,6 +1,6 @@
 php admin/cli/install.php \
     --chmod=2777 \
-    --wwwroot="%%wwwroot%%" \
+    --wwwroot="%%cliwwwroot%%" \
     --dataroot="%%dataroot%%" \
     --dbtype="%%dbtype%%" \
     --dbname="%%dbname%%" \

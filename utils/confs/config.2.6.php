@@ -16,6 +16,11 @@ $CFG->dboptions = array (
   'dbsocket' => 0,
 );
 
+$port = '';
+if (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80') {
+    $port = ':'.$_SERVER['SERVER_PORT'];
+}
+
 $CFG->dirroot   = '%%dirroot%%';
 $CFG->wwwroot   = '%%wwwroot%%';
 $CFG->dataroot  = '%%dataroot%%';

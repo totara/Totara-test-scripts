@@ -1,6 +1,6 @@
 php admin/cliupgrade.php \
     --lang="en_utf8" \
-    --webaddr="%%wwwroot%%" \
+    --webaddr="%%cliwwwroot%%" \
     --moodledir="%%dirroot%%" \
     --datadir="%%dataroot%%" \
     --dbtype="%%dbtype%%" \
