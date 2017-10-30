@@ -1,4 +1,4 @@
-<?php  // Totara 2.7 configuration file
+<?php  // Totara 10 configuration file
 
 unset($CFG);
 global $CFG;
@@ -16,8 +16,13 @@ $CFG->dboptions = array (
   'dbsocket' => 0,
 );
 
+$port = '';
+if (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80') {
+    $port = ':'.$_SERVER['SERVER_PORT'];
+}
+
 $CFG->dirroot   = '%%dirroot%%';
-$CFG->wwwroot   = '%%wwwroot%%';
+$CFG->wwwroot   = "%%wwwroot%%";
 $CFG->dataroot  = '%%dataroot%%';
 $CFG->admin     = 'admin';
 $CFG->passwordsaltmain = '';
@@ -29,6 +34,7 @@ $CFG->phpunit_dataroot = '%%phpunit_dataroot%%';
 $CFG->behat_prefix = 'bht_';
 $CFG->behat_dataroot = '%%behat_dataroot%%';
 $CFG->behat_wwwroot = '%%behat_wwwroot%%';
+$CFG->behat_faildump_path = '/tmp';
 $CFG->behat_config = array(
     'chrome' => array(
         'extensions' => array(
