@@ -292,6 +292,9 @@ function get_site_version($directory = null) {
  */
 function get_best_config($version, $type='config') {
 
+    // Do some cleanup to handle odd version numbers.
+    $version = preg_replace('/[^0-9.]/', '', $version);
+
     if ($type == 'config') {
         $sourcedir = '/confs/';
         $fileregex = '/config\.(.+)\.php/';
@@ -300,13 +303,14 @@ function get_best_config($version, $type='config') {
         $fileregex = '/cli\.(.+)\.php/';
     }
     $confdir = __DIR__ . $sourcedir;
-    // sort backwards to start from the highest version number
-    $files = scandir($confdir, 1);
+    $files = scandir($confdir);
     if (empty($files)) {
         throw new Exception("No config file templates found in '{$confdir}'");
         // no config files found
         return false;
     }
+    // sort backwards to start from the highest version number
+    rsort($files, SORT_NATURAL);
     foreach ($files as $file) {
         if (!preg_match($fileregex, $file, $matches)) {
             // doesn't match format
@@ -494,6 +498,10 @@ function normalise_dbtype($dbtype) {
  * @return object Object containing database settings.
  */
 function get_database_settings($dbtype, $dbname, $version) {
+
+    // Do some cleanup to handle odd version numbers.
+    $version = preg_replace('/[^0-9.]/', '', $version);
+
     $settings = new stdClass();
     $settings->dbname = $dbname;
     $settings->dbtype = normalise_dbtype($dbtype);
