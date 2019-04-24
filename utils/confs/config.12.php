@@ -1,4 +1,4 @@
-<?php  // Totara 2.7 configuration file
+<?php  // Totara 12 configuration file
 
 unset($CFG);
 global $CFG;
@@ -22,7 +22,7 @@ if (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != '80') {
 }
 
 $CFG->dirroot   = '%%dirroot%%';
-$CFG->wwwroot   = '%%wwwroot%%';
+$CFG->wwwroot   = "%%wwwroot%%";
 $CFG->dataroot  = '%%dataroot%%';
 $CFG->admin     = 'admin';
 $CFG->passwordsaltmain = '';
@@ -34,17 +34,24 @@ $CFG->phpunit_dataroot = '%%phpunit_dataroot%%';
 $CFG->behat_prefix = 'bht_';
 $CFG->behat_dataroot = '%%behat_dataroot%%';
 $CFG->behat_wwwroot = '%%behat_wwwroot%%';
+$CFG->behat_faildump_path = '/tmp';
 $CFG->behat_config = array(
     'chrome' => array(
         'extensions' => array(
-            'Behat\MinkExtension\Extension' => array(
+            'Behat\MinkExtension' => array(
                 'selenium2' => array(
                     'browser' => 'chrome',
-                    'wd_host' => 'http://localhost:4444/wd/hub',
+                    'wd_host' => 'http://127.0.0.1:4444/wd/hub',
                     'capabilities' => array(
-                        'chrome' => array(
-                            'switches' => array(
-                                '--disable-infobars'
+                        'extra_capabilities' => array(
+                            'chromeOptions' => array(
+                                'args' => array(
+                                    '--disable-infobars',
+                                    '--disable-background-throttling'
+                                ),
+                                'prefs' => array(
+                                    'credentials_enable_service' => false,
+                                )
                             )
                         )
                     )
@@ -82,7 +89,7 @@ $CFG->passwordpolicy = false;
 $CFG->defaultcity = '%%defaultcity%%';
 $CFG->country = '%%defaultcountry%%';
 
-$CFG->sessiontimeout = 8*60*60;
+$CFG->sessiontimeout = 4*60*60;
 
 // Some optional useful settings
 //$CFG->noemailever = true;
@@ -92,6 +99,9 @@ $CFG->sessiontimeout = 8*60*60;
 $CFG->smtphosts = 'localhost:1025';
 
 $CFG->sitetype = 'development';
+
+// Allow auto-login block to continue to work - dev only!
+$CFG->allowlogincsrf = true;
 
 // Add warning to distinguish development sites from production.
 $CFG->additionalhtmltopofbody = '<div style="position:fixed;top:0;left:50%;width:200px;margin-left:-100px;height:35px;background:yellow;font-size: 16px;font-weight:bold;text-align:center;line-height:35px;z-index:10000;" onclick="this.style.display = \'none\'"><span class="flex-icon ft-fw ft fa-exclamation-triangle"></span>Development site</div>';

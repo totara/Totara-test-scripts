@@ -100,6 +100,12 @@ $CFG->smtphosts = 'localhost:1025';
 
 $CFG->sitetype = 'development';
 
+// Add warning to distinguish development sites from production.
+$CFG->additionalhtmltopofbody = '<div style="position:fixed;top:0;left:50%;width:200px;margin-left:-100px;height:35px;background:yellow;font-size: 16px;font-weight:bold;text-align:center;line-height:35px;z-index:10000;" onclick="this.style.display = \'none\'"><span class="flex-icon ft-fw ft fa-exclamation-triangle"></span>Development site</div>';
+
+// Allow auto-login block to continue to work - dev only!
+$CFG->allowlogincsrf = true;
+
 require_once(dirname(__FILE__) . '/lib/setup.php');
 
 // There is no php closing tag in this file,
