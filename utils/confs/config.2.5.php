@@ -74,6 +74,8 @@ $CFG->country = '%%defaultcountry%%';
 // Divert mail to mailcatcher
 $CFG->smtphosts = 'localhost:1025';
 
+$CFG->sitetype = 'development';
+
 require_once(dirname(__FILE__) . '/lib/setup.php');
 
 // There is no php closing tag in this file,

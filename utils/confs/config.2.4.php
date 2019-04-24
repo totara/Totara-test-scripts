@@ -46,6 +46,8 @@ $CFG->passwordpolicy = false;
 $CFG->defaultcity = '%%defaultcity%%';
 $CFG->country = '%%defaultcountry%%';
 
+$CFG->sitetype = 'development';
+
 require_once(dirname(__FILE__) . '/lib/setup.php');
 
 // There is no php closing tag in this file,
