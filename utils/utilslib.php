@@ -590,6 +590,20 @@ function cli_upgrade($dirroot) {
     pclose($handle);
 }
 
+function cli_run_catalog_task($dirroot) {
+    $clicommand =  'php admin/tool/task/cli/schedule_task.php --execute=\\\\totara_catalog\\\\task\\\\refresh_catalog_data';
+    chdir($dirroot);
+    // Only run if code version supports it
+    if (file_exists($dirroot . '/totara/catalog/classes/task/refresh_catalog_data.php')) {
+        // run the command printing output in real-time
+        $handle = popen($clicommand, 'r');
+        while (!feof($handle)) {
+            echo fread($handle, 2096);
+        }
+        pclose($handle);
+    }
+}
+
 /**
  * Returns the config file contents for a given installation and database
  *

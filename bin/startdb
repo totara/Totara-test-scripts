@@ -179,3 +179,5 @@ $db->query("
 echo "Starting CLI upgrade in '{$dirroot}'\n";
 cli_upgrade($dirroot);
 
+echo "Running catalog index task if required\n";
+cli_run_catalog_task($dirroot);
