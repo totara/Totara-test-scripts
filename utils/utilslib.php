@@ -144,7 +144,7 @@ function is_site_config_file($configpath, $matchquality = 0.5) {
  * @return string|boolean Returns 'platform_learn' for moodle/totara site config.php, 'platform_social' for mahara/social site config.php or false if
  * neither.
  */
-function is_site_root_folder($directory, $matchquality = 0.75) {
+function is_site_root_folder($directory, $matchquality = 0.4) {
 
     // Check for a moodle/totara site first, then for mahara/social.
     foreach (['platform_learn', 'platform_social'] as $type) {
@@ -248,7 +248,11 @@ function delete_directory_contents($dirpath) {
  */
 function get_site_version($directory = null) {
     $rootdir = get_web_root($directory);
-    $versionfile = $rootdir . '/version.php';
+    if (is_readable($rootdir . '/server/version.php')) {
+        $versionfile = $rootdir . '/server/version.php';
+    } else {
+        $versionfile = $rootdir . '/version.php';
+    }
     if (!is_readable($versionfile)) {
         // no version.php to get version from
         throw new Exception("Cannot get site version - '{$versionfile}' is missing or unreadable");
@@ -258,8 +262,13 @@ function get_site_version($directory = null) {
     }
     // Required for MATURITY constants
     // They are stored somewhere new in 2.6.
-    $maturitylib = is_readable($rootdir.'/lib/classes/component.php') ?
-        $rootdir . '/lib/classes/component.php' : $rootdir . '/lib/setuplib.php';
+    if (is_readable($rootdir. '/server/lib/classes/component.php')) {
+        $maturitylib = $rootdir . '/server/lib/classes/component.php';
+    } else if (is_readable($rootdir. '/lib/classes/component.php')) {
+        $maturitylib = $rootdir . '/lib/classes/component.php';
+    } else {
+        $maturitylib = $rootdir . '/lib/setuplib.php';
+    }
     require_once($maturitylib);
     require($versionfile);
 
@@ -580,7 +589,11 @@ function cli_install($dbtype, $dbname, $dirroot) {
 }
 
 function cli_upgrade($dirroot) {
-    $clicommand =  "php admin/cli/upgrade.php --non-interactive --allow-unstable";
+    if (is_readable($dirroot . 'server/admin/cli/upgrade.php')) {
+        $clicommand =  "php server/admin/cli/upgrade.php --non-interactive --allow-unstable";
+    } else {
+        $clicommand =  "php admin/cli/upgrade.php --non-interactive --allow-unstable";
+    }
     chdir($dirroot);
     // run the command printing output in real-time
     $handle = popen($clicommand, 'r');
@@ -591,10 +604,15 @@ function cli_upgrade($dirroot) {
 }
 
 function cli_run_catalog_task($dirroot) {
-    $clicommand =  'php admin/tool/task/cli/schedule_task.php --execute=\\\\totara_catalog\\\\task\\\\refresh_catalog_data';
+    if (is_readable($dirroot . 'server/admin/cli/schedule_task.php')) {
+        $clicommand =  'php server/admin/tool/task/cli/schedule_task.php --execute=\\\\totara_catalog\\\\task\\\\refresh_catalog_data';
+    } else {
+        $clicommand =  'php admin/tool/task/cli/schedule_task.php --execute=\\\\totara_catalog\\\\task\\\\refresh_catalog_data';
+    }
     chdir($dirroot);
     // Only run if code version supports it
-    if (file_exists($dirroot . '/totara/catalog/classes/task/refresh_catalog_data.php')) {
+    if (file_exists($dirroot . '/server/totara/catalog/classes/task/refresh_catalog_data.php') ||
+        file_exists($dirroot . '/totara/catalog/classes/task/refresh_catalog_data.php')) {
         // run the command printing output in real-time
         $handle = popen($clicommand, 'r');
         while (!feof($handle)) {
@@ -675,10 +693,10 @@ class platform_base {
  */
 class platform_learn extends platform_base {
     public static function get_common_dirs() {
-        return array('admin', 'blocks', 'calendar', 'course', 'install', 'lang', 'lib', 'local', 'login', 'mod', 'theme', 'user', '.git');
+        return array('server', 'client', 'test', 'libraries', 'mod', 'totara', 'report', 'blocks', '.git');
     }
     public static function get_common_files() {
-        return array('config-dist.php', 'README.txt', 'TRADEMARK.txt', 'version.php', 'index.php');
+        return array('config.example.php', 'readme.md', 'jest.config.php', 'version.php', 'index.php');
     }
     public static function get_common_config_patterns() {
         return array(
