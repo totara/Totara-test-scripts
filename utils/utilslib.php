@@ -589,7 +589,7 @@ function cli_install($dbtype, $dbname, $dirroot) {
 }
 
 function cli_upgrade($dirroot) {
-    if (is_readable($dirroot . 'server/admin/cli/upgrade.php')) {
+    if (is_readable($dirroot . '/server/admin/cli/upgrade.php')) {
         $clicommand =  "php server/admin/cli/upgrade.php --non-interactive --allow-unstable";
     } else {
         $clicommand =  "php admin/cli/upgrade.php --non-interactive --allow-unstable";
@@ -604,7 +604,7 @@ function cli_upgrade($dirroot) {
 }
 
 function cli_run_catalog_task($dirroot) {
-    if (is_readable($dirroot . 'server/admin/cli/schedule_task.php')) {
+    if (is_readable($dirroot . '/server/admin/tool/task/cli/schedule_task.php')) {
         $clicommand =  'php server/admin/tool/task/cli/schedule_task.php --execute=\\\\totara_catalog\\\\task\\\\refresh_catalog_data';
     } else {
         $clicommand =  'php admin/tool/task/cli/schedule_task.php --execute=\\\\totara_catalog\\\\task\\\\refresh_catalog_data';
