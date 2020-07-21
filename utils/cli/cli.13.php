@@ -1,4 +1,4 @@
-php ./server/admin/cli/install.php \
+php server/admin/cli/install.php \
     --chmod=2777 \
     --wwwroot="%%cliwwwroot%%/server" \
     --dataroot="%%dataroot%%" \
